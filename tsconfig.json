@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "allowJs": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "noEmit": true,
+        "esModuleInterop": true,
+        "module": "esnext",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "incremental": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./*"]
+        },
+        "plugins": [
+            {
+                "name": "next"
+            }
+        ]
+    },
+    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "ni18n.config.ts.js", "app/(defaults)/media-library/page.js", "components/FileManager/FileManager.jsx", "components/FileManager/Toolbar/Toolbar.jsx", "components/FileManager/Toolbar/Toolbar.jsx", "components/FileManager/Toolbar/LayoutToggler.jsx", "components/FileManager/FileManagerWrapper.jsx", "services/index.js", "services/GetUserLogin/index.js", "components/car/model/UpdateCarModelComponent.jsx"],
+    "exclude": ["node_modules"]
+}
