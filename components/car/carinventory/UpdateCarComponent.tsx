@@ -76,14 +76,16 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                     horsepower: data.horsepower || null,
                     price: data.CarPrices[0]?.price,
                     exportPrice: data.CarPrices[1]?.price,
-                    features: data.FeatureValues?.map((feature) => ({
+                    features: data.FeatureValues?.map((feature: { id: number }) => ({
                         featureValueId: feature.id,
                     })) || [],
-                    images: data.CarImages?.map((image) => ({
+                    
+                    images: data.CarImages?.map((image: { fileId: string; type: string; order: number }) => ({
                         fileId: image.fileId,
                         type: image.type,
                         order: image.order,
                     })) || [],
+                    
                 };
 
                 console.log('Transformed Data:', transformedData);
@@ -92,33 +94,42 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                 dispatch(setFormData(transformedData));
 
                 // Push CarImages data into Redux `images` state
-                const transformedImages = data.CarImages?.map((image) => ({
+                const transformedImages = data.CarImages?.map((image: { fileId: string; type: string; order: number; id?: number; FileSystem?: { thumbnailPath?: string; path?: string } }) => ({
                     fileId: image.fileId,
                     type: image.type,
                     order: image.order,
                     id: image.id, // Include ID if needed
                     thumbnailPath: image.FileSystem?.thumbnailPath || image.FileSystem?.path, // Add thumbnail or path
                 })) || [];
+                
 
                 dispatch(setImages(transformedImages)); // Push to Redux
 
                 // Set the dropdown states
                 setSelectedSpecificationValues(
-                    response.SpecificationValues?.reduce((acc, spec) => {
-                        acc[spec.Specification.key] = spec.id; // Use key from Specification and id as string
-                        return acc;
-                    }, {})
+                    response.SpecificationValues?.reduce(
+                        (acc: Record<string, string>, spec: { Specification: { key: string }; id: string }) => {
+                            acc[spec.Specification.key] = spec.id; // Use key from Specification and id as string
+                            return acc;
+                        },
+                        {} as Record<string, string> // Initialize the accumulator as a Record<string, string>
+                    )
                 );
+                
                 setSelectedFeatureValues(
-                    response.FeatureValues?.reduce((acc, featureValue) => {
-                        const featureId = featureValue.Feature.id; // Get the Feature ID
-                        if (!acc[featureId]) {
-                            acc[featureId] = []; // Initialize an array for this Feature ID
-                        }
-                        acc[featureId].push(featureValue.id); // Add the feature value ID to the array
-                        return acc;
-                    }, {})
+                    response.FeatureValues?.reduce(
+                        (acc: Record<number, number[]>, featureValue: { Feature: { id: number }; id: number }) => {
+                            const featureId = featureValue.Feature.id; // Get the Feature ID
+                            if (!acc[featureId]) {
+                                acc[featureId] = []; // Initialize an array for this Feature ID
+                            }
+                            acc[featureId].push(featureValue.id); // Add the feature value ID to the array
+                            return acc;
+                        },
+                        {} as Record<number, number[]> // Initialize the accumulator as a Record<number, number[]>
+                    )
                 );
+                
 
 
                 setSelectedBrand({
@@ -500,9 +511,27 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
         try {
             console.log('Updating Payload:', formData); // Debug the final payload
     
+            // Convert formData object to FormData instance
+            const formDataToSend = new FormData();
+    
+            // Add all key-value pairs from formData to formDataToSend
+            Object.entries(formData).forEach(([key, value]) => {
+                if (Array.isArray(value)) {
+                    // For arrays (like images or specifications), add each item individually
+                    value.forEach((item, index) => {
+                        formDataToSend.append(`${key}[${index}]`, typeof item === 'object' ? JSON.stringify(item) : item);
+                    });
+                } else if (typeof value === 'object' && value !== null) {
+                    // For objects, stringify them
+                    formDataToSend.append(key, JSON.stringify(value));
+                } else {
+                    // For other primitive values, add them directly
+                    formDataToSend.append(key, value as string);
+                }
+            });
     
             // Call the `updateCar` service
-            const response = await CarService.updateCar(formData);
+            const response = await CarService.updateCar(formDataToSend);
     
             if (response) {
                 console.log('Car updated successfully:', response);
@@ -516,6 +545,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
             alert('An error occurred while updating the car.');
         }
     };
+    
     
 
     if (loading) {
