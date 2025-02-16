@@ -5,7 +5,6 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
-    trailingSlash: false, // Ensure clean URLs
 };
 
 module.exports = nextConfig;
