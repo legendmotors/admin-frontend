@@ -5,32 +5,33 @@ export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     console.log('Middleware triggered for pathname:', pathname);
-    console.log('Cookies:', req.cookies.getAll());
     console.log('Token:', token);
 
     // Allow unauthenticated users to access login/register pages
-    if (!token) {
-        if (pathname.startsWith('/auth')) {
-            console.log('Allowing access to auth pages');
-            return NextResponse.next();
-        }
+    if (!token && !['/auth/login', '/auth/register'].includes(pathname)) {
         console.log('Redirecting unauthenticated user to /auth/login');
-        return NextResponse.redirect(new URL('/auth/login', req.nextUrl.origin));
+        return NextResponse.redirect(new URL('/auth/login', req.url));
+    }
+
+    // Prevent redirect loop by allowing access to /auth/login for unauthenticated users
+    if (!token && ['/auth/login', '/auth/register'].includes(pathname)) {
+        console.log('Allowing access to login/register for unauthenticated user');
+        return NextResponse.next();
     }
 
     // Redirect authenticated users away from login/register pages
-    if (token && pathname.startsWith('/auth')) {
+    if (token && ['/auth/login', '/auth/register'].includes(pathname)) {
         console.log('Redirecting authenticated user to /');
-        return NextResponse.redirect(new URL('/', req.nextUrl.origin));
+        return NextResponse.redirect(new URL('/', req.url));
     }
 
-    console.log('User is authenticated, allowing access');
+    console.log('Proceeding with the request');
     return NextResponse.next();
 }
 
-// Updated matcher to exclude additional static assets and public files
+// Exclude static assets, API routes, and public files
 export const config = {
     matcher: [
-        '/((?!api|_next/static|_next/image|favicon.ico|assets|robots.txt|sitemap.xml|manifest.json).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|assets|robots.txt|sitemap.xml).*)',
     ],
 };
