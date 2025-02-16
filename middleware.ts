@@ -7,16 +7,17 @@ export function middleware(req: NextRequest) {
     console.log('Middleware triggered for pathname:', pathname);
     console.log('Token:', token);
 
-    // Allow unauthenticated users to access login/register pages
-    if (!token && !['/auth/login', '/auth/register'].includes(pathname)) {
+    // Handle undefined or invalid token cases
+    if (!token) {
+        // Allow access to login and register routes for unauthenticated users
+        if (['/auth/login', '/auth/register'].includes(pathname)) {
+            console.log('Allowing access to login/register for unauthenticated user');
+            return NextResponse.next();
+        }
+
+        // Redirect unauthenticated users to the login page
         console.log('Redirecting unauthenticated user to /auth/login');
         return NextResponse.redirect(new URL('/auth/login', req.url));
-    }
-
-    // Prevent redirect loop by allowing access to /auth/login for unauthenticated users
-    if (!token && ['/auth/login', '/auth/register'].includes(pathname)) {
-        console.log('Allowing access to login/register for unauthenticated user');
-        return NextResponse.next();
     }
 
     // Redirect authenticated users away from login/register pages
@@ -25,6 +26,7 @@ export function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL('/', req.url));
     }
 
+    // If no conditions are matched, allow the request to proceed
     console.log('Proceeding with the request');
     return NextResponse.next();
 }
