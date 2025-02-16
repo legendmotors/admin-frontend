@@ -7,26 +7,24 @@ export function middleware(req: NextRequest) {
     console.log('Middleware triggered for pathname:', pathname);
     console.log('Token:', token);
 
-    // Handle undefined or invalid token cases
+    // Prevent unauthenticated users from accessing protected routes
     if (!token) {
-        // Allow access to login and register routes for unauthenticated users
-        if (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/register')) {
+        if (['/auth/login', '/auth/register'].includes(pathname)) {
             console.log('Allowing access to login/register for unauthenticated user');
             return NextResponse.next();
         }
 
-        // Redirect unauthenticated users to the login page for all other routes
         console.log('Redirecting unauthenticated user to /auth/login');
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 
-    // Redirect authenticated users away from login/register pages
-    if (token && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/register'))) {
+    // Prevent authenticated users from accessing login/register
+    if (token && ['/auth/login', '/auth/register'].includes(pathname)) {
         console.log('Redirecting authenticated user to /');
         return NextResponse.redirect(new URL('/', req.url));
     }
 
-    console.log('Proceeding with the request');
+    console.log('Authenticated user, proceeding with the request');
     return NextResponse.next();
 }
 
