@@ -1,32 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(req: NextRequest) {
-    const token = req.cookies.get('token')?.value; // Fetch token from cookies
+    const token = req.cookies.get('token')?.value;
     const { pathname } = req.nextUrl;
 
-    // Allow unauthenticated access to static files and public routes
-    if (
-        pathname.startsWith('/_next') || // Next.js static files
-        pathname.startsWith('/favicon.ico') || // Favicon
-        pathname.startsWith('/auth') // Login/Register pages
-    ) {
-        return NextResponse.next(); // Allow access
+    console.log('Middleware triggered for pathname:', pathname);
+    console.log('Token:', token);
+
+    // Allow access to login and register pages without authentication
+    if (!token && ['/auth/login', '/auth/register'].includes(pathname)) {
+        console.log('Allowing access to login/register page');
+        return NextResponse.next();
     }
 
     // Redirect unauthenticated users trying to access protected routes
     if (!token) {
+        console.log('Redirecting to /auth/login');
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 
-    // Redirect authenticated users away from login/register pages
-    if (token && pathname.startsWith('/auth')) {
-        return NextResponse.redirect(new URL('/', req.url)); // Redirect to dashboard or home
+    // Redirect authenticated users away from login and register pages
+    if (token && ['/auth/login', '/auth/register'].includes(pathname)) {
+        console.log('Redirecting authenticated user to /');
+        return NextResponse.redirect(new URL('/', req.url));
     }
 
+    console.log('Proceeding with the request');
     return NextResponse.next();
 }
 
-// ✅ Matcher: Apply middleware only to relevant routes
+// ✅ Add back the matcher to exclude unnecessary routes
 export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|assets).*)'],
+    matcher: [
+        '/((?!api|_next/static|_next/image|favicon.ico|assets|robots.txt|sitemap.xml).*)',
+    ],
 };
