@@ -385,45 +385,43 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
     console.log(selectedSpecificationValues, "selectedSpecificationValues");
 
     useEffect(() => {
-        const fetchSpecificationsWithValues = async () => {
-            try {
-                setLoading(true);
-
-                // Fetch all specifications
-                const specificationsResponse = await SpecificationService.listSpecifications({});
-                const specifications = specificationsResponse.data;
-
-                console.log(specifications, "specifications");
-
-
-                // Fetch values for each specification individually
-                const specificationsWithValues = await Promise.all(
-                    specifications.map(async (spec: any) => {
-                        const response = await SpecificationService.listSpecificationValues({
-                            specificationId: spec.id,
-                        }); // Fetch values for this specification
-                        const values = response.data.map((value: any) => ({
-                            value: value.id,
-                            label: value.name,
-                        }));
-
-                        return {
-                            ...spec,
-                            values, // Only values related to this specification
-                        };
-                    })
-                );
-
-                setSpecifications(specificationsWithValues);
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching specifications and values:", error);
-                setLoading(false);
-            }
-        };
-
-        fetchSpecificationsWithValues();
-    }, []);
+            const fetchSpecificationsWithValues = async () => {
+                try {
+                    setLoading(true);
+        
+                    // Fetch all specifications without pagination
+                    const specificationsResponse = await SpecificationService.listSpecifications({ limit: 0 }); // Set limit to 0 to fetch all specifications
+                    const specifications = specificationsResponse.data;
+        
+                    // Fetch values for each specification individually
+                    const specificationsWithValues = await Promise.all(
+                        specifications.map(async (spec: any) => {
+                            const response = await SpecificationService.listSpecificationValues({
+                                specificationId: spec.id,
+                                limit: 0, // Fetch all values for this specification
+                            });
+                            const values = response.data.map((value: any) => ({
+                                value: value.id,
+                                label: value.name,
+                            }));
+        
+                            return {
+                                ...spec,
+                                values, // Only values related to this specification
+                            };
+                        })
+                    );
+        
+                    setSpecifications(specificationsWithValues); // Set all fetched specifications with their values
+                    setLoading(false);
+                } catch (error) {
+                    console.error('Error fetching specifications and values:', error);
+                    setLoading(false);
+                }
+            };
+        
+            fetchSpecificationsWithValues();
+        }, []);
 
     const handleSpecificationChange = (key: string, value: any) => {
         setSelectedSpecificationValues((prevValues) => ({
@@ -438,33 +436,36 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
     console.log(selectedFeatureValues, "selectedFeatureValues");
 
     useEffect(() => {
-        const fetchFeaturesWithValues = async () => {
-            try {
-                // Fetch all features
-                const featureResponse = await FeatureService.listFeatures({ limit: 0 }); // Fetch all features
-                const features = featureResponse.data;
-
-                // Fetch feature values for each feature
-                const featuresWithValues = await Promise.all(
-                    features.map(async (feature: any) => {
-                        const valuesResponse = await FeatureService.listFeatureValues({ featureId: feature.id, limit: 0 }); // Fetch all values
-                        const values = valuesResponse.data.map((value: any) => ({
-                            id: value.id,
-                            name: value.name,
-                            slug: value.slug,
-                        }));
-                        return { ...feature, values };
-                    })
-                );
-
-                setFeatures(featuresWithValues);
-            } catch (error) {
-                console.error("Error fetching features and values:", error);
-            }
-        };
-
-        fetchFeaturesWithValues();
-    }, []);
+            const fetchFeaturesWithValues = async () => {
+                try {
+                    // Fetch all features without pagination
+                    const featureResponse = await FeatureService.listFeatures({ limit: 0 }); // Set limit to 0 to fetch all features
+                    const features = featureResponse.data;
+        
+                    // Fetch feature values for each feature
+                    const featuresWithValues = await Promise.all(
+                        features.map(async (feature: any) => {
+                            const valuesResponse = await FeatureService.listFeatureValues({
+                                featureId: feature.id,
+                                limit: 0, // Fetch all values for this feature
+                            });
+                            const values = valuesResponse.data.map((value: any) => ({
+                                id: value.id,
+                                name: value.name,
+                                slug: value.slug,
+                            }));
+                            return { ...feature, values };
+                        })
+                    );
+        
+                    setFeatures(featuresWithValues); // Set all fetched features with their values
+                } catch (error) {
+                    console.error('Error fetching features and values:', error);
+                }
+            };
+        
+            fetchFeaturesWithValues();
+        }, []);
 
 
     const handleFeatureCheckboxChange = (featureId: number, valueId: number) => {
