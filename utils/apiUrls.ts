@@ -2,7 +2,7 @@
 const API_URL: string =
     document.domain === 'localhost'
         ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`
-        : "production";
+        : `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`
 
 const Apis: Record<string, string> = {
     // Authentication API
