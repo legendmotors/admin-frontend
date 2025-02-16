@@ -100,36 +100,44 @@ const UpdateTrimComponent = ({ trimId }: { trimId: number }) => {
         modelId: Yup.number().required('Please select a model'),
     });
 
-    const fetchModels = async (searchQuery = '', loadedOptions = [], page = 1) => {
-        try {
-            const params: Record<string, any> = {
-                page,
-                limit: 10,
-                status: 'published',
-            };
-
-            if (searchQuery.trim()) params.search = searchQuery;
-
-            const response = await CarModelService.listCarModel(params);
-
-            if (!response || !response.data || !Array.isArray(response.data)) {
-                return { options: [], hasMore: false };
-            }
-
-            const newOptions = response.data.map((model: any) => ({
-                value: model.id,
-                label: model.name,
-            }));
-
-            return {
-                options: newOptions,
-                hasMore: response.pagination?.currentPage < response.pagination?.totalPages,
-            };
-        } catch (error) {
-            console.error("Error fetching models:", error);
-            return { options: [], hasMore: false };
-        }
-    };
+   const fetchModels = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
+           try {
+               const params: Record<string, any> = {
+                   page: additional.page, // Pass the current page number
+                   limit: 10, // Limit results per page
+                   status: 'published',
+               };
+   
+               if (searchQuery.trim()) {
+                   params.search = searchQuery;
+               }
+   
+               const response = await CarModelService.listCarModel(params);
+   
+               if (!response || !response.data || !Array.isArray(response.data)) {
+                   return { options: [], hasMore: false };
+               }
+   
+               const newOptions = response.data.map((model: any) => ({
+                   value: model.id,
+                   label: model.name,
+               }));
+   
+               // Determine if more pages are available
+               const hasMore = response.pagination.currentPage < response.pagination.totalPages;
+   
+               return {
+                   options: newOptions,
+                   hasMore,
+                   additional: {
+                       page: additional.page + 1, // Increment page for the next call
+                   },
+               };
+           } catch (error) {
+               console.error("Error fetching models:", error);
+               return { options: [], hasMore: false };
+           }
+       };
 
     const handleSubmit = async (values: TrimFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
         Swal.fire({ title: 'Updating Trim...', html: renderProgressHtml(0, 'Initializing...'), showConfirmButton: false });

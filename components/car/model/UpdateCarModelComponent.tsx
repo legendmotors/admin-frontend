@@ -45,11 +45,11 @@ const UpdateCarModelComponent = ({ modelId }: { modelId: number }) => {
             if (response) {
                 setInitialValues({
                     name: response.name,
-                    brandId: response.brand.id,
+                    brandId: response?.brand?.id,
                     slug: response.slug,
                     status: response.status,
                 });
-                setSelectedBrand({ value: response.brand.id, label: response.brand.name });
+                setSelectedBrand({ value: response?.brand?.id, label: response?.brand?.name });
                 setStatus(response.status);
             }
         };
@@ -109,39 +109,46 @@ const UpdateCarModelComponent = ({ modelId }: { modelId: number }) => {
         brandId: Yup.number().required('Please select a brand'),
     });
 
-    const fetchBrands = async (searchQuery = '', loadedOptions = [], page = 1) => {
-        try {
-            const params: Record<string, any> = {
-                page,
-                limit: 10,
-                status: 'published' // ✅ Fetch only published brands
-            };
+   // Function to fetch brands with search & pagination
+   const fetchBrands = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
+    try {
+        const params: Record<string, any> = {
+            page: additional.page, // Pass the current page number
+            limit: 10, // Limit results per page
+            status: 'published',
+        };
 
-            if (searchQuery.trim()) params.search = searchQuery;
+        if (searchQuery.trim()) {
+            params.search = searchQuery;
+        }
 
-            const response = await GeBrandDetails.listBrand(params);
+        const response = await GeBrandDetails.listBrand(params);
 
-            if (!response || !response.data || !Array.isArray(response.data)) {
-                return { options: [], hasMore: false };
-            }
-
-            // ✅ Ensure only brands with status "published" are mapped
-            const newOptions = response.data
-                .filter((brand: any) => brand.status === 'published')
-                .map((brand: any) => ({
-                    value: brand.id,
-                    label: brand.name,
-                }));
-
-            return {
-                options: newOptions,
-                hasMore: response.pagination?.currentPage < response.pagination?.totalPages,
-            };
-        } catch (error) {
-            console.error("Error fetching brands:", error);
+        if (!response || !response.data || !Array.isArray(response.data)) {
             return { options: [], hasMore: false };
         }
-    };
+
+        // Map response data to options
+        const newOptions = response.data.map((brand: any) => ({
+            value: brand.id,
+            label: brand.name,
+        }));
+
+        // Determine if more pages are available
+        const hasMore = response.pagination.currentPage < response.pagination.totalPages;
+
+        return {
+            options: newOptions,
+            hasMore,
+            additional: {
+                page: additional.page + 1, // Increment page for the next call
+            },
+        };
+    } catch (error) {
+        console.error("Error fetching brands:", error);
+        return { options: [], hasMore: false };
+    }
+};
 
 
     const handleSubmit = async (values: CarModelFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {

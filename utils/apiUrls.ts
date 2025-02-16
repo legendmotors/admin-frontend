@@ -30,8 +30,34 @@ const Apis: Record<string, string> = {
     UpdateUserStatus: `${API_URL}/api/auth/user/UpdateUserStatus`,  // ✅ Restore a soft-deleted user
     UpdateUser: `${API_URL}/api/auth/user/Update`,  // ✅ Restore a soft-deleted user
 
+    // Roles APIs
+    CreateRole: `${API_URL}/api/auth/roles/create`, // Create a new role
+    GetAllRoles: `${API_URL}/api/auth/roles`, // Get all roles with pagination, search, and sorting
+    GetRoleById:`${API_URL}/api/auth/roles/getById`,
+    UpdateRole:`${API_URL}/api/auth/roles/update`,
+    AssignPermissionsToRole: `${API_URL}/api/auth/roles/assignPermissions`, // Assign permissions to a role
+    GetPermissionsForRole: `${API_URL}/api/auth/roles/getPermissions`, // Get permissions for a specific role
+
+    // Permissions APIs
+    CreatePermission: `${API_URL}/api/auth/permissions/create`, // Create a new permission
+    GetAllPermissions: `${API_URL}/api/auth/permissions`, // Get all permissions with pagination, search, and sorting
+    GetPermissionById: `${API_URL}/api/auth/permissions/getById`, // Get a specific permission by ID
+    UpdatePermission: `${API_URL}/api/auth/permissions/update`, // Update a specific permission
+    DeletePermission: `${API_URL}/api/auth/permissions/delete`, // Delete a specific permission
+
+
+    // User Role Assignment API
+    AssignRoleToUser: `${API_URL}/api/users/assignRole`, // Assign a role to a user
+
     // Brand Apis
     GetBrandList: `${API_URL}/api/brand/list`,
+    AddBrand: `${API_URL}/api/brand/create`,
+    UpdateBrand: `${API_URL}/api/brand/update`,
+    DeleteBrand: `${API_URL}/api/brand/delete`,
+    GetBrandById: `${API_URL}/api/brand/getById`,
+    GetBrandBySlug: `${API_URL}/api/brand/getBySlug`,
+    BulkDeleteBrands: `${API_URL}/api/brand/bulk-delete`,
+    ImportBrands: `${API_URL}/api/brand/import`,
 
     // Car Model APIs
     GetCarModelList: `${API_URL}/api/carmodel/list`,
@@ -48,6 +74,70 @@ const Apis: Record<string, string> = {
     DeleteTrim: `${API_URL}/api/trim/delete`,
     GetTrimById: `${API_URL}/api/trim/getById`,
     BulkDeleteTrims: `${API_URL}/api/trim/bulk-delete`,
+
+    // Feature APIs
+    GetFeatureList: `${API_URL}/api/feature/list`,
+    AddFeature: `${API_URL}/api/feature/create`,
+    UpdateFeature: `${API_URL}/api/feature/update`,
+    DeleteFeature: `${API_URL}/api/feature/delete`,
+    GetFeatureById: `${API_URL}/api/feature/getById`,
+    GetFeatureBySlug: `${API_URL}/api/feature/getBySlug`,
+    BulkDeleteFeatures: `${API_URL}/api/feature/bulk-delete`,
+
+    // FeatureValue APIs
+    GetFeatureValueList: `${API_URL}/api/featurevalue/list`,
+    AddFeatureValue: `${API_URL}/api/featurevalue/create`,
+    UpdateFeatureValue: `${API_URL}/api/featurevalue/update`,
+    DeleteFeatureValue: `${API_URL}/api/featurevalue/delete`,
+    GetFeatureValueById: `${API_URL}/api/featurevalue/getById`,
+    GetFeatureValueBySlug: `${API_URL}/api/featurevalue/getBySlug`,
+    BulkDeleteFeatureValues: `${API_URL}/api/featurevalue/bulk-delete`,
+
+    // Specification APIs
+    GetSpecificationList: `${API_URL}/api/specification/list`,
+    AddSpecification: `${API_URL}/api/specification/create`,
+    UpdateSpecification: `${API_URL}/api/specification/update`,
+    DeleteSpecification: `${API_URL}/api/specification/delete`,
+    GetSpecificationById: `${API_URL}/api/specification/getById`,
+    GetSpecificationBySlug: `${API_URL}/api/specification/getBySlug`,
+    BulkDeleteSpecifications: `${API_URL}/api/specification/bulk-delete`,
+
+    // SpecificationValue APIs
+    GetSpecificationValueList: `${API_URL}/api/specificationvalue/list`,
+    AddSpecificationValue: `${API_URL}/api/specificationvalue/create`,
+    UpdateSpecificationValue: `${API_URL}/api/specificationvalue/update`,
+    DeleteSpecificationValue: `${API_URL}/api/specificationvalue/delete`,
+    GetSpecificationValueById: `${API_URL}/api/specificationvalue/getById`,
+    BulkDeleteSpecificationValues: `${API_URL}/api/specificationvalue/bulk-delete`,
+
+    // Year API
+    GetYearList: `${API_URL}/api/year/list`,
+    AddYear: `${API_URL}/api/year/create`,
+    UpdateYear: `${API_URL}/api/year/update`,
+    DeleteYear: `${API_URL}/api/year/delete`,
+    GetYearById: `${API_URL}/api/year/getById`,
+    BulkDeleteYears: `${API_URL}/api/year/bulk-delete`,
+
+    // Car APIs
+    AddCar: `${API_URL}/api/car/create`,
+    UpdateCar: `${API_URL}/api/car/update`,
+    DeleteCar: `${API_URL}/api/car/delete`,
+    GetCarList: `${API_URL}/api/car/list`,
+    GetCarById: `${API_URL}/api/car/getById`,
+    GetCarBySlug: `${API_URL}/api/car/getBySlug`,
+    BulkDeleteCars: `${API_URL}/api/car/bulk-delete`,
+
+    // Status APIs
+    UpdateStatus: '/api/status/update',               // POST - Update status for a single item
+    BulkUpdateStatus: '/api/status/bulk-update',      // POST - Bulk update status for multiple items
+    GetItemsByStatus: '/api/status/filter',           // GET - Get items by status (draft/published)
+    GetStatusById: '/api/status/status-by-id',        // GET - Get item status by ID
+    UpdateStatusById: '/api/status/update-by-id',  
+
+
+
+
+
 
     // Dashboard
     GetOrderByStatus: `${API_URL}/api/order/status`,

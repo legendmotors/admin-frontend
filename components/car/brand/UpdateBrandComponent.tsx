@@ -414,14 +414,13 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                 }}
                                             />
                                             {submitCount ? (
-                                                errors.description && typeof errors.description === 'string' ? (
+                                                typeof errors.description === 'string' ? (
                                                     <div className="mt-1 text-danger">{errors.description}</div>
                                                 ) : (
                                                     <div className="mt-1 text-success">Looks Good!</div>
                                                 )
-                                            ) : (
-                                                ''
-                                            )}
+                                            ) : null}
+
 
                                         </div>
                                     </div>

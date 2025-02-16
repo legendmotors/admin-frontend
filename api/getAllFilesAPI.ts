@@ -1,44 +1,37 @@
 import { api } from "./api";
 
-// Define the response structure
-interface GetFilesResponse {
-  success: boolean;
-  data: any[]; // Adjust type if you have a proper FileItem type
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-  };
+// Define the type for the response data
+interface File {
+  id: string; // Replace with the actual properties of the file object
+  name: string; // Example field
+  // Add more fields as required
 }
 
+interface GetAllFilesResponse {
+  success: boolean;
+  data: File[];
+  totalRecords: number;
+  totalPages: number;
+}
+
+// Define function with proper typing
 export const getAllFilesAPI = async (
   search: string = "",
   page: number = 1,
   limit: number = 10
-): Promise<GetFilesResponse> => {
+): Promise<GetAllFilesResponse> => {
   try {
-    // Prepare parameters, excluding search if it's empty
-    const params: any = { page, limit };
+    // Dynamically build the params object
+    const params: { [key: string]: any } = { page, limit };
     if (search) {
-      params.search = search;
+      params.search = search; // Add search only if it has a value
     }
 
-    // Make the request with the constructed params
-    const response = await api.get("/", { params });
+    const response = await api.get<GetAllFilesResponse>("/", { params });
 
-    return {
-      success: response.data.success,
-      data: response.data.data || [],
-      pagination: {
-        currentPage: page, // ✅ Wrap in `pagination`
-        totalPages: response.data.totalPages || 1,
-      },
-    };
+    return response.data; // ✅ Only return actual data
   } catch (error) {
     console.error("❌ Error fetching files:", error);
-    return {
-      success: false,
-      data: [],
-      pagination: { currentPage: 1, totalPages: 1 }, // ✅ Ensure pagination exists
-    };
+    return { success: false, data: [], totalRecords: 0, totalPages: 0 }; // ✅ Safe fallback
   }
 };

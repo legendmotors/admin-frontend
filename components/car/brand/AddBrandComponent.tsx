@@ -286,7 +286,17 @@ const AddBrandComponent = () => {
                                             <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
                                         </div>
 
-
+                                        <div className={submitCount ? (errors.name ? 'has-error' : 'has-success') : ''}>
+                                            <label htmlFor="name">Name</label>
+                                            <Field
+                                                name="name"
+                                                type="text"
+                                                id="name"
+                                                placeholder="Enter Name"
+                                                className="form-input"
+                                            />
+                                            <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
+                                        </div>
 
                                     </div>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-1">
@@ -297,14 +307,13 @@ const AddBrandComponent = () => {
                                                 onChange={(newContent) => setFieldValue('description', newContent)}
                                             />
                                             {submitCount ? (
-                                                errors.description ? (
+                                                typeof errors.description === 'string' ? (
                                                     <div className="mt-1 text-danger">{errors.description}</div>
                                                 ) : (
                                                     <div className="mt-1 text-success">Looks Good!</div>
                                                 )
-                                            ) : (
-                                                ''
-                                            )}
+                                            ) : null}
+
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

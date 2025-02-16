@@ -24,6 +24,6 @@
             }
         ]
     },
-    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "ni18n.config.ts.js", "app/(defaults)/media-library/page.js", "components/FileManager/FileManager.jsx", "components/FileManager/Toolbar/Toolbar.jsx", "components/FileManager/Toolbar/Toolbar.jsx", "components/FileManager/Toolbar/LayoutToggler.jsx", "components/FileManager/FileManagerWrapper.jsx", "services/index.js", "services/GetUserLogin/index.js", "components/car/model/UpdateCarModelComponent.jsx"],
+    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "ni18n.config.ts.js", "app/(defaults)/media-library/page.js", "components/FileManager/FileManager.jsx", "components/FileManager/Toolbar/Toolbar.jsx", "components/FileManager/Toolbar/Toolbar.jsx", "components/FileManager/Toolbar/LayoutToggler.jsx", "components/FileManager/FileManagerWrapper.jsx", "services/index.js", "services/GetUserLogin/index.js", "components/car/model/UpdateCarModelComponent.jsx", "services/SpecificationService", "components/users/AddPermissionsComponenttsx", "services/UpdateStatusService"],
     "exclude": ["node_modules"]
 }

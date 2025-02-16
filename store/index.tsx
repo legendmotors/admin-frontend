@@ -1,10 +1,14 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import themeConfigSlice from '@/store/themeConfigSlice';
-import fileSelectionSlice from '@/store/fileSelectionSlice'; // ✅ Import file selection slice
+import fileSelectionSlice from '@/store/fileSelectionSlice';
+import stepSlice from '@/store/stepSlice'; // ✅ Import the new step slice
+import formSlice from '@/store/formSlice'; // ✅ Import the new step slice
 
 const rootReducer = combineReducers({
   themeConfig: themeConfigSlice,
-  fileSelection: fileSelectionSlice, // ✅ Add file selection reducer
+  fileSelection: fileSelectionSlice,
+  step: stepSlice, 
+  form: formSlice,
 });
 
 const store = configureStore({

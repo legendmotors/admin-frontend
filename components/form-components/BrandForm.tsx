@@ -122,14 +122,13 @@ const BrandForm: React.FC<BrandFormProps> = ({ initialValues, onSubmit, isEdit =
                                                 onChange={(newContent) => setFieldValue('description', newContent)}
                                             />
                                             {submitCount ? (
-                                                errors.description ? (
+                                                typeof errors.description === 'string' ? (
                                                     <div className="mt-1 text-danger">{errors.description}</div>
                                                 ) : (
                                                     <div className="mt-1 text-success">Looks Good!</div>
                                                 )
-                                            ) : (
-                                                ''
-                                            )}
+                                            ) : null}
+
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

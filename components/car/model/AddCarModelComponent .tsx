@@ -24,17 +24,16 @@ const AddCarModelComponent = () => {
     const [selectedBrand, setSelectedBrand] = useState<{ value: number; label: string } | null>(null);
 
     // Function to fetch brands with search & pagination
-    const fetchBrands = async (searchQuery = '', loadedOptions = [], page = 1) => {
+    const fetchBrands = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
         try {
-            // ✅ Construct params dynamically to avoid sending empty search queries
             const params: Record<string, any> = {
-                page,
-                limit: 10, // Limit brands per request
-                status: 'published' // ✅ Fetch only published brands
+                page: additional.page, // Pass the current page number
+                limit: 10, // Limit results per page
+                status: 'published',
             };
 
             if (searchQuery.trim()) {
-                params.search = searchQuery; // ✅ Only include search if not empty
+                params.search = searchQuery;
             }
 
             const response = await GeBrandDetails.listBrand(params);
@@ -43,19 +42,20 @@ const AddCarModelComponent = () => {
                 return { options: [], hasMore: false };
             }
 
-            // ✅ Ensure only brands with status "published" are mapped
-            const newOptions = response.data
-                .filter((brand: any) => brand.status === 'published') // Extra check for safety
-                .map((brand: any) => ({
-                    value: brand.id,
-                    label: brand.name,
-                }));
+            // Map response data to options
+            const newOptions = response.data.map((brand: any) => ({
+                value: brand.id,
+                label: brand.name,
+            }));
+
+            // Determine if more pages are available
+            const hasMore = response.pagination.currentPage < response.pagination.totalPages;
 
             return {
                 options: newOptions,
-                hasMore: response.pagination.currentPage < response.pagination.totalPages,
+                hasMore,
                 additional: {
-                    page: page + 1, // ✅ Ensure proper pagination
+                    page: additional.page + 1, // Increment page for the next call
                 },
             };
         } catch (error) {
@@ -63,6 +63,7 @@ const AddCarModelComponent = () => {
             return { options: [], hasMore: false };
         }
     };
+
 
 
 
@@ -205,6 +206,7 @@ const AddCarModelComponent = () => {
                                             }}
                                             placeholder="Search and select a brand"
                                         />
+
                                         <ErrorMessage name="brandId" component="div" className="mt-1 text-danger" />
                                     </div>
                                 </div>

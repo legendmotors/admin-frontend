@@ -7,7 +7,9 @@ export const metadata: Metadata = {
 };
 
 const ListBrand = () => {
-    return <BrandListingTable />;
+    return <>
+        <BrandListingTable />
+    </>;
 };
 
 export default ListBrand;

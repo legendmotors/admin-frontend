@@ -1,4 +1,4 @@
-import BrandListingTable from '@/components/car/brand/BrandListingTable';
+import CarInventoryListing from '@/components/car/carinventory/CarInventoryListing';
 import { Metadata } from 'next';
 import React from 'react';
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const ListBrand = () => {
-    return <BrandListingTable />;
+    return <CarInventoryListing />;
 };
 
 export default ListBrand;

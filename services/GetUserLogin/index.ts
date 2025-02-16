@@ -3,6 +3,7 @@ import withReactContent from 'sweetalert2-react-content';
 import api from '@/utils/ApiConfig';
 import { eraseCookie, getCookie, setCookie } from '@/utils/cookieFunction';
 import { Apis } from '@/utils/apiUrls';
+import { jwtDecode } from 'jwt-decode';
 
 const MySwal = withReactContent(Swal);
 
@@ -150,13 +151,36 @@ const getDeleteUserList = async (id: string) => {
 };
 
 // 🔹 Authenticate User (Set Cookies)
-const authenticate = (user: { token: string; role: string }, next: () => void) => {
+const authenticate = (user: { token: string }, next: () => void) => {
     if (typeof window !== 'undefined') {
-        setCookie('token', user.token, 30);
-        setCookie('role', user.role, 30);
+        setCookie('token', user.token, 30); // Save the token as a cookie
+
+        // Decode the token to extract details
+        const decoded: any = jwtDecode(user.token); // Decoding the token
+        if (decoded) {
+            // Save roleId from the token
+            if (decoded.roleId) {
+                setCookie('roleId', decoded.roleId, 30);
+            }
+
+            // Save permissions as a comma-separated string
+            if (decoded.permissions) {
+                setCookie('permissions', decoded.permissions.join(','), 30);
+            }
+
+            // Save any additional fields if required
+            if (decoded.sub) {
+                setCookie('userId', decoded.sub, 30); // Save userId (sub field)
+            }
+        } else {
+            console.warn('Token payload is invalid or missing required fields');
+        }
+
         next();
     }
 };
+
+
 
 // 🔹 Logout User (Clear Cookies)
 const logout = (next: () => void) => {

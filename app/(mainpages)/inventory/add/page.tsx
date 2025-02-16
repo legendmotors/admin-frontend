@@ -1,4 +1,5 @@
 import AddBrandComponent from '@/components/car/brand/AddBrandComponent';
+import AddCarComponent from '@/components/car/carinventory/AddCarComponent';
 import ComponentsFormsValidationCustomStyles from '@/components/forms/validation/components-forms-validation-custom-styles';
 import Breadcrumb from '@/components/utils/Breadcrumbs';
 import { Metadata } from 'next';
@@ -19,7 +20,7 @@ const AddBrand = () => {
     return (
         <div>
             <Breadcrumb items={breadcrumbItems} />
-            <AddBrandComponent />
+            <AddCarComponent />
 
         </div>)
 };

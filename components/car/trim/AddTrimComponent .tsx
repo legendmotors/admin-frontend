@@ -20,11 +20,11 @@ const AddTrimComponent = () => {
     const [selectedModel, setSelectedModel] = useState<{ value: number; label: string } | null>(null);
 
     // Fetch models for dropdown
-    const fetchModels = async (searchQuery = '', loadedOptions = [], page = 1) => {
+    const fetchModels = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
         try {
             const params: Record<string, any> = {
-                page,
-                limit: 10,
+                page: additional.page, // Pass the current page number
+                limit: 10, // Limit results per page
                 status: 'published',
             };
 
@@ -43,17 +43,21 @@ const AddTrimComponent = () => {
                 label: model.name,
             }));
 
+            // Determine if more pages are available
+            const hasMore = response.pagination.currentPage < response.pagination.totalPages;
+
             return {
                 options: newOptions,
-                hasMore: response.pagination.currentPage < response.pagination.totalPages,
-                additional: { page: page + 1 },
+                hasMore,
+                additional: {
+                    page: additional.page + 1, // Increment page for the next call
+                },
             };
         } catch (error) {
             console.error("Error fetching models:", error);
             return { options: [], hasMore: false };
         }
     };
-
     useEffect(() => {
         const progressHandler = (data: { progress: number; message: string; status: string }) => {
             console.log("Progress Data:", data);

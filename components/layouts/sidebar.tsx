@@ -163,8 +163,13 @@ const Sidebar = () => {
 
                                 <AnimateHeight duration={300} height={currentMenu === 'features' ? 'auto' : 0}>
                                     <ul className="sub-menu text-gray-500">
-
                                         <li>
+                                            <Link href="/feature/list">Features</Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/feature/list-value">Features With Values</Link>
+                                        </li>
+                                        {/* <li>
                                             <Link href="/brand/list">Exterior & Control</Link>
                                         </li>
                                         <li>
@@ -178,7 +183,7 @@ const Sidebar = () => {
                                         </li>
                                         <li>
                                             <Link href="/trim/list">Infotainment</Link>
-                                        </li>
+                                        </li> */}
                                     </ul>
                                 </AnimateHeight>
                             </li>
@@ -197,7 +202,14 @@ const Sidebar = () => {
 
                                 <AnimateHeight duration={300} height={currentMenu === 'specification' ? 'auto' : 0}>
                                     <ul className="sub-menu text-gray-500">
+
                                         <li>
+                                            <Link href="/specification/list">Specifications</Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/specification/list-value">Specifications with values</Link>
+                                        </li>
+                                        {/* <li>
                                             <Link href="/brand/list">Regional specs</Link>
                                         </li>
                                         <li>
@@ -227,13 +239,13 @@ const Sidebar = () => {
                                         </li>
                                         <li>
                                             <Link href="/brand/list">Horsepower</Link>
-                                        </li>
+                                        </li> */}
                                     </ul>
                                 </AnimateHeight>
                             </li>
 
                             <li className="menu nav-item">
-                                <Link href="/media-library" className="group">
+                                <Link href="/inventory/list" className="group">
                                     <div className="flex items-center">
                                         <IconListCheck className="shrink-0 group-hover:!text-primary" />
                                         <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Car Inventory</span>
@@ -259,7 +271,7 @@ const Sidebar = () => {
                                             <Link href="/users/list">All Users</Link>
                                         </li>
                                         <li>
-                                            <Link href="/users/roles">Roles</Link>
+                                            <Link href="/users/roles/list">Roles</Link>
                                         </li>
                                     </ul>
                                 </AnimateHeight>
