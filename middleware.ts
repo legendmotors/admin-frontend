@@ -7,19 +7,17 @@ export function middleware(req: NextRequest) {
     console.log('Middleware triggered for pathname:', pathname);
     console.log('Token:', token);
 
-    // Allow access to login and register pages without authentication
-    if (!token && ['/auth/login', '/auth/register'].includes(pathname)) {
-        console.log('Allowing access to login/register page');
-        return NextResponse.next();
-    }
-
-    // Redirect unauthenticated users trying to access protected routes
+    // Allow unauthenticated users to access login/register pages
     if (!token) {
-        console.log('Redirecting to /auth/login');
+        if (['/auth/login', '/auth/register'].includes(pathname)) {
+            console.log('Unauthenticated user accessing login/register, allowing access');
+            return NextResponse.next();
+        }
+        console.log('Redirecting unauthenticated user to /auth/login');
         return NextResponse.redirect(new URL('/auth/login', req.url));
     }
 
-    // Redirect authenticated users away from login and register pages
+    // Redirect authenticated users away from login/register pages
     if (token && ['/auth/login', '/auth/register'].includes(pathname)) {
         console.log('Redirecting authenticated user to /');
         return NextResponse.redirect(new URL('/', req.url));
@@ -29,7 +27,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
 }
 
-// ✅ Add back the matcher to exclude unnecessary routes
+// Exclude static assets, API routes, and public files
 export const config = {
     matcher: [
         '/((?!api|_next/static|_next/image|favicon.ico|assets|robots.txt|sitemap.xml).*)',
