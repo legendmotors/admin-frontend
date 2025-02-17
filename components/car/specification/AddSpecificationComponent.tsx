@@ -9,7 +9,7 @@ import IconSave from '@/components/icon/icon-save';
 import SectionHeader from '@/components/utils/SectionHeader';
 import SpecificationService from '@/services/SpecificationService';
 
-const socket = io('ws://localhost:4000');
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
 // Types for form values
 interface SpecificationFormValues {

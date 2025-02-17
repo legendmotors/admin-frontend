@@ -11,7 +11,7 @@ import { AsyncPaginate } from 'react-select-async-paginate';
 import FeatureService from '@/services/FeatureService';
 import { getTranslation } from '@/i18n';
 
-const socket = io('ws://localhost:4000');
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
 interface FeatureValueFormValues {
     name: string;

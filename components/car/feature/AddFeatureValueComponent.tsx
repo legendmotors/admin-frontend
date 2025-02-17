@@ -10,7 +10,7 @@ import SectionHeader from '@/components/utils/SectionHeader';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import FeatureService from '@/services/FeatureService';
 
-const socket = io('ws://localhost:4000');
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
 // Types for form values
 interface FeatureValueFormValues {

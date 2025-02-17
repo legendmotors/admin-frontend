@@ -11,7 +11,7 @@ import IconSave from '@/components/icon/icon-save';
 import IconCircleCheck from '@/components/icon/icon-circle-check';
 import SectionHeader from '@/components/utils/SectionHeader';
 
-const socket = io('ws://localhost:4000');
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
 interface CarModelFormValues {
     name: string;

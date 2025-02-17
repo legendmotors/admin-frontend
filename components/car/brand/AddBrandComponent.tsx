@@ -18,7 +18,7 @@ import { useDispatch } from 'react-redux';
 import { setSelectedFiles } from '@/store/fileSelectionSlice';
 
 // Connect to the backend socket server
-const socket = io('ws://localhost:4000'); // Make sure it matches your WebSocket server's URL
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`); // Make sure it matches your WebSocket server's URL
 
 const AddBrandComponent = () => {
     const dispatch = useDispatch();
