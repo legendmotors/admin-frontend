@@ -352,17 +352,16 @@ const ReusableTable = <T extends Record<string, any>>({
 
           </div>
           <div className="ltr:ml-auto rtl:mr-auto flex items-center gap-2">
-            {/* {importComponentConfig && (
+            {importComponentConfig && (
               <ImportComponent
                 endpoint={importComponentConfig.endpoint}
                 socketEvent={importComponentConfig.socketEvent}
-                socketURL={importComponentConfig.socketURL}
                 title={importComponentConfig.title}
                 description={importComponentConfig.description}
                 acceptedFileTypes={importComponentConfig.acceptedFileTypes}
                 onComplete={importComponentConfig.onComplete || handleImportComplete}
               />
-            )} */}
+            )}
             <input
               type="text"
               className="form-input w-auto"

@@ -5,6 +5,9 @@ import { io, Socket } from "socket.io-client";
 
 const MySwal = withReactContent(Swal);
 
+// Define socketURL globally
+const socketURL = process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.legendmotorsuae.com";
+
 interface ProgressData {
     status: string;
     message: string;
@@ -14,7 +17,6 @@ interface ProgressData {
 interface ImportComponentProps {
     endpoint: string; // The API endpoint to which the file will be uploaded
     socketEvent: string; // The socket event name for progress updates
-    socketURL: string; // The backend socket URL
     title?: string; // Optional title for the import modal
     description?: string; // Optional description for the import modal
     acceptedFileTypes?: string; // File types to be accepted (default is ".csv")
@@ -24,7 +26,6 @@ interface ImportComponentProps {
 const ImportComponent: React.FC<ImportComponentProps> = ({
     endpoint,
     socketEvent,
-    socketURL,
     title = "Select a File to Import",
     description = "Click the button below to select a file.",
     acceptedFileTypes = ".csv",
@@ -35,34 +36,39 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
 
     // Initialize socket connection
     useEffect(() => {
-        const newSocket = io(socketURL); // Connect to the provided socket URL
+        const newSocket = io(socketURL, {
+            transports: ["websocket"], // ✅ Force only WebSockets (No polling)
+            withCredentials: true, // ✅ Allows cookies and authentication
+        });
+
         setSocket(newSocket);
 
         newSocket.on(socketEvent, (data: ProgressData) => {
             console.log("Progress data:", data);
             setProgress(data.progress);
 
-            // Update the SweetAlert2 modal content dynamically
-            Swal.update({
-                html: `
-          <div>
-            <p>${data.message}</p>
-            <div style="width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 10px;">
-              <div style="width: ${data.progress}%; background: #4caf50; height: 20px; border-radius: 5px;"></div>
-            </div>
-            <p>${data.progress}% completed</p>
-          </div>
-        `,
-            });
+            // ✅ Ensure Swal.update() is only called when Swal is open
+            if (Swal.isVisible()) {
+                Swal.update({
+                    html: `
+                        <div>
+                            <p>${data.message}</p>
+                            <div style="width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 10px;">
+                                <div style="width: ${data.progress}%; background: #4caf50; height: 20px; border-radius: 5px;"></div>
+                            </div>
+                            <p>${data.progress}% completed</p>
+                        </div>
+                    `,
+                });
+            }
 
-            // Handle completion
             if (data.progress === 100 && data.status === "completed") {
                 Swal.fire({
                     icon: "success",
                     title: "Import Completed",
                     text: "The file has been imported successfully.",
                 }).then(() => {
-                    if (onComplete) onComplete(); // Trigger the onComplete callback
+                    if (onComplete) onComplete();
                 });
             }
         });
@@ -70,7 +76,7 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
         return () => {
             newSocket.disconnect();
         };
-    }, [socketEvent, socketURL, onComplete]);
+    }, [socketEvent, onComplete]);
 
     const handleFileUpload = async (file: File) => {
         const formData = new FormData();
@@ -116,14 +122,14 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
 
     const handleImportClick = () => {
         MySwal.fire({
-            title: "Select a File to Import",
+            title,
             html: `
-            <p>Click the button below to select a CSV file.</p>
-            <input type="file" id="fileInput" accept=".csv" style="display: none;" />
-            <label for="fileInput" style="cursor: pointer; padding: 10px; background: #007bff; color: white; border-radius: 5px;">
-              Choose File
-            </label>
-          `,
+                <p>${description}</p>
+                <input type="file" id="fileInput" accept="${acceptedFileTypes}" style="display: none;" />
+                <label for="fileInput" style="cursor: pointer; padding: 10px; background: #007bff; color: white; border-radius: 5px;">
+                    Choose File
+                </label>
+            `,
             showCancelButton: true,
             showConfirmButton: false,
             allowOutsideClick: false,
@@ -131,7 +137,6 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
             didOpen: () => {
                 const fileInput = document.getElementById("fileInput") as HTMLInputElement;
                 if (fileInput) {
-                    // Wrap the React handler to make it compatible with native events
                     fileInput.addEventListener("change", (event) => {
                         const target = event.target as HTMLInputElement;
                         if (target && target.files) {
@@ -142,7 +147,6 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
             },
         });
     };
-
 
     return (
         <div>

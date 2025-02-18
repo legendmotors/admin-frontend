@@ -98,7 +98,6 @@ const CarInventoryListing: React.FC = () => {
                     <ImportComponent
                         endpoint={importComponentConfig.endpoint}
                         socketEvent={importComponentConfig.socketEvent}
-                        socketURL={importComponentConfig.socketURL}
                         title={importComponentConfig.title}
                         description={importComponentConfig.description}
                         acceptedFileTypes={importComponentConfig.acceptedFileTypes}
