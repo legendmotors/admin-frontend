@@ -101,7 +101,7 @@ const Sidebar = () => {
                     </div>
                     <PerfectScrollbar className="relative h-[calc(100vh-80px)]">
                         <ul className="relative space-y-0.5 p-4 py-0 font-semibold">
-                            <li className="menu nav-item">
+                            {/* <li className="menu nav-item">
                                 <button type="button" className={`${currentMenu === 'dashboard' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('dashboard')}>
                                     <div className="flex items-center">
                                         <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
@@ -120,7 +120,7 @@ const Sidebar = () => {
                                         </li>
                                     </ul>
                                 </AnimateHeight>
-                            </li>
+                            </li> */}
 
                             <li className="menu nav-item">
                                 <button type="button" className={`${currentMenu === 'brand' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('brand')}>
@@ -262,7 +262,7 @@ const Sidebar = () => {
                                 </Link>
                             </li>
 
-                            <li className="menu nav-item">
+                            {/* <li className="menu nav-item">
                                 <button type="button" className={`${currentMenu === 'trim' ? 'active' : ''} nav-link group w-full`} onClick={() => toggleMenu('trim')}>
                                     <div className="flex items-center">
                                         <IconUsers className="shrink-0 group-hover:!text-primary" />
@@ -361,7 +361,7 @@ const Sidebar = () => {
                                         <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Configuration</span>
                                     </div>
                                 </Link>
-                            </li>
+                            </li> */}
                         </ul>
                     </PerfectScrollbar>
                 </div>
