@@ -24,6 +24,7 @@ import ComponentsDragndropGrid from './ComponentsDragndropGrid.jsx';
 import { io } from 'socket.io-client';
 import CarTagService from '@/services/CarTagService';
 import BrochureUpload from './BrochureUpload';
+import Swal from 'sweetalert2';
 
 interface Specification {
     id: number;
@@ -543,26 +544,81 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
         }
     };
 
-
+    // ----------------------
+    // Render progress HTML for SweetAlert2
+    // ----------------------
+    const renderProgressHtml = (progress: number, message: string) => `
+    <div class="mb-5 space-y-5">
+      <div class="w-full h-4 bg-gray-200 rounded-full">
+        <div class="bg-blue-500 h-4 rounded-full text-center text-white text-xs" style="width: ${progress}%;">${progress}%</div>
+      </div>
+      <p class="text-center">${message}</p>
+    </div>
+  `;
 
     const handleUpdate = async () => {
         try {
             console.log('Updating Payload:', formData); // Debug the final payload
+            Swal.fire({
+                title: 'Updating Car...',
+                html: renderProgressHtml(0, 'Waiting for progress updates...'),
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
 
+
+            // Listen to socket progress events and update Swal accordingly
+            socket.on('progress', (data: any) => {
+                const { progress, message } = data;
+                Swal.update({
+                    html: renderProgressHtml(progress, message),
+                });
+            });
+
+            // Force a 2-second delay if needed (optional)
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            // Now perform the API call
+            const payload = constructStep1Payload(formData);
+            console.log('Publishing Payload:', payload);
 
             // Call the `updateCar` service
             const response = await CarService.updateCar(formData);
+            // Unsubscribe from socket progress events once done
+            socket.off('progress');
+            // Ensure progress shows 100%
+            Swal.update({
+                html: renderProgressHtml(100, 'Finalizing...'),
+            });
 
             if (response) {
-                console.log('Car updated successfully:', response);
-                alert('Car updated successfully!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Car Updated Successfully!',
+                    text: 'Your car has been updated successfully.',
+                }).then(() => {
+                    // Reset Redux state
+                    dispatch(setFormData({}));
+                    dispatch(setStep(1));
+                    // Redirect to inventory list
+                    window.location.href = '/inventory/list';
+                });
             } else {
-                console.error('Failed to update car.');
-                alert('Failed to update the car. Please try again.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update the car. Please try again.',
+                });
             }
         } catch (error) {
-            console.error('Error updating car:', error);
-            alert('An error occurred while updating the car.');
+            console.error('Error updating the car:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while updating the car.',
+            });
         }
     };
 
