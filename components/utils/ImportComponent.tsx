@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { io, Socket } from "socket.io-client";
+import IconDownload from "../icon/icon-download";
 
 const MySwal = withReactContent(Swal);
 
@@ -152,9 +153,10 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
         <div>
             <button
                 onClick={handleImportClick}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
+                className="px-4 py-2 bg-info text-white rounded hover:bg-blue-600 flex gap-2 items-center"
+            ><IconDownload className="h-4 w-4" />
                 Import File
+
             </button>
 
             {/* Progress bar overlay */}

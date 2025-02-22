@@ -91,12 +91,12 @@ const LoginForm: React.FC = () => {
                     </span>
                 </div>
             </div>
-            <div>
+            {/* <div>
                 <label className="flex cursor-pointer items-center">
                     <input type="checkbox" className="form-checkbox bg-white dark:bg-black" />
                     <span className="text-white-dark">Subscribe to weekly newsletter</span>
                 </label>
-            </div>
+            </div> */}
             <button
                 type="submit"
                 className="btn btn-gradient !mt-6 w-full border-0 uppercase shadow-[0_10px_20px_-10px_rgba(67,97,238,0.44)]"

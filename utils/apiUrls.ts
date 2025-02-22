@@ -134,7 +134,14 @@ const Apis: Record<string, string> = {
     GetStatusById: '/api/status/status-by-id',        // GET - Get item status by ID
     UpdateStatusById: '/api/status/update-by-id',  
 
-
+    // CarTag APIs
+    GetTagList: `${API_URL}/api/tag/list`,
+    AddTag: `${API_URL}/api/tag/create`,
+    UpdateTag: `${API_URL}/api/tag/update`,
+    DeleteTag: `${API_URL}/api/tag/delete`,
+    GetTagById: `${API_URL}/api/tag/getById`,
+    GetTagBySlug: `${API_URL}/api/tag/getBySlug`,
+    BulkDeleteTags: `${API_URL}/api/tag/bulk-delete`,
 
 
 

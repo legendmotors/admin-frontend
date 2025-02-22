@@ -2,6 +2,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import api from '@/utils/ApiConfig';
 import { Apis } from '@/utils/apiUrls';
+import axios from 'axios';
 
 const MySwal = withReactContent(Swal);
 
@@ -60,7 +61,7 @@ const addCar = async (payload: Record<string, any>) => {
 
 
 /* Update Car */
-const updateCar = async (payload: FormData) => {
+const updateCar  = async (payload: Record<string, any>) => {
     try {
         const response = await api.put(Apis.UpdateCar, payload, {
             headers: { 'Content-Type': 'multipart/form-data' },
@@ -129,8 +130,13 @@ const deleteCar = async (id: number) => {
         showTopCenterNotification('Car deleted successfully!');
         return true;
     } catch (error) {
-        console.error('Error deleting car:', error);
-        showTopCenterNotification('An error occurred while deleting the car.');
+        if (axios.isAxiosError(error)) {
+            console.error('Error deleting brand:', error.response?.data?.message);
+            showTopCenterNotification(error.response?.data?.message || 'An error occurred while deleting the brand.');
+        } else {
+            console.error('Unexpected error:', error);
+            showTopCenterNotification('An unexpected error occurred.');
+        }
         return false;
     }
 };

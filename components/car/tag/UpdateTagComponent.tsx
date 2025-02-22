@@ -7,49 +7,39 @@ import io from 'socket.io-client';
 import IconSave from '@/components/icon/icon-save';
 import IconCircleCheck from '@/components/icon/icon-circle-check';
 import SectionHeader from '@/components/utils/SectionHeader';
-import SpecificationService from '@/services/SpecificationService';
+import CarTagService from '@/services/CarTagService';
 import { getTranslation } from '@/i18n';
 
 const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
-interface SpecificationFormValues {
+interface TagFormValues {
     name: string;
     slug: string;
     status: 'draft' | 'published';
-    mandatory: boolean;
 }
 
-interface Specification {
-    id: number;
-    name: string;
-    slug: string;
-    status: 'draft' | 'published';
-    mandatory: boolean;
-}
-
-const UpdateSpecificationComponent = ({ specificationId }: { specificationId: number }) => {
+const UpdateTagComponent = ({ tagId }: { tagId: number }) => {
     const { t, i18n } = getTranslation();
     const formikRef = useRef<any>(null);
     const [progress, setProgress] = useState<number>(0);
     const [statusMessage, setStatusMessage] = useState<string>('');
-    const [initialValues, setInitialValues] = useState<SpecificationFormValues | null>(null);
+    const [initialValues, setInitialValues] = useState<TagFormValues | null>(null);
     const [status, setStatus] = useState<'draft' | 'published'>('draft');
 
     useEffect(() => {
-        const fetchSpecification = async () => {
-            const response = await SpecificationService.getSpecificationById(specificationId, i18n.language);
+        const fetchtag = async () => {
+            const response = await CarTagService.getTagById(tagId, i18n.language);
             if (response) {
                 setInitialValues({
                     name: response.name,
                     slug: response.slug,
                     status: response.status,
-                    mandatory: response.mandatory,
                 });
                 setStatus(response.status);
             }
         };
-        fetchSpecification();
-    }, [specificationId]);
+        fetchtag();
+    }, [tagId]);
 
     useEffect(() => {
         const progressHandler = (data: { progress: number; message: string; status: string }) => {
@@ -63,10 +53,10 @@ const UpdateSpecificationComponent = ({ specificationId }: { specificationId: nu
             if (data.progress === 100 && data.status === 'completed') {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Specification Updated Successfully!',
-                    text: 'The specification has been updated successfully.',
+                    title: 'tag Updated Successfully!',
+                    text: 'The tag has been updated successfully.',
                 }).then(() => {
-                    window.location.href = '/specification/list';
+                    window.location.href = '/car-tags/list';
                 });
 
                 socket.off('progress', progressHandler);
@@ -96,15 +86,15 @@ const UpdateSpecificationComponent = ({ specificationId }: { specificationId: nu
         name: Yup.string().required('Please fill the name'),
     });
 
-    const handleSubmit = async (values: SpecificationFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
-        Swal.fire({ title: 'Updating Specification...', html: renderProgressHtml(0, 'Initializing...'), showConfirmButton: false });
-        const response = await SpecificationService.updateSpecification({ ...values, id: specificationId, lang: i18n.language });
+    const handleSubmit = async (values: TagFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
+        Swal.fire({ title: 'Updating tag...', html: renderProgressHtml(0, 'Initializing...'), showConfirmButton: false });
+        const response = await CarTagService.updateTag({ ...values, id: tagId, lang: i18n.language });
         if (response) {
-            Swal.fire({ icon: 'success', title: 'Specification Updated Successfully!' }).then(() => {
-                window.location.href = '/specification/list';
+            Swal.fire({ icon: 'success', title: 'tag Updated Successfully!' }).then(() => {
+                window.location.href = '/car-tags/list';
             });
         } else {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update specification.' });
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update tag.' });
         }
         setSubmitting(false);
     };
@@ -114,7 +104,7 @@ const UpdateSpecificationComponent = ({ specificationId }: { specificationId: nu
     return (
         <div className="flex flex-col gap-2.5 xl:flex-row">
             <div className="panel flex-1 px-0 pb-6 ltr:xl:mr-6 rtl:xl:ml-6 pt-0 ">
-                <SectionHeader title="Edit Specification" />
+                <SectionHeader title="Edit tag" />
                 <div className="px-4 w-100">
                     <Formik
                         innerRef={formikRef}
@@ -123,30 +113,16 @@ const UpdateSpecificationComponent = ({ specificationId }: { specificationId: nu
                         onSubmit={handleSubmit}
                         enableReinitialize
                     >
-                        {({ values, setFieldValue }) => (
-                            <Form className="space-y-5">
-                                <div>
-                                    <label htmlFor="name">Name</label>
-                                    <Field name="name" type="text" className="form-input" />
-                                    <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
-                                </div>
-                                <div>
-                                    <label htmlFor="mandatory">Mandatory</label>
-                                    <label className="w-12 h-6 relative">
-                                        <input
-                                            type="checkbox"
-                                            className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
-                                            checked={values.mandatory}
-                                            onChange={() => setFieldValue('mandatory', !values.mandatory)} // ✅ Toggle inside Formik
-                                        />
-                                        <span className="outline_checkbox bg-icon border-2 border-gray-300 dark:border-white-dark block h-full rounded-full before:absolute before:left-1 before:bg-gray-300 dark:before:bg-white-dark before:bottom-1 before:w-4 before:h-4 before:rounded-full before:bg-[url('/assets/images/close.svg')] before:bg-no-repeat before:bg-center peer-checked:before:left-7 peer-checked:before:bg-[url('/assets/images/checked.svg')] peer-checked:border-primary peer-checked:before:bg-primary before:transition-all before:duration-300"></span>
-                                    </label>
-                                </div>
-                                <button type="submit" className="btn btn-success w-full gap-2">
-                                    <IconSave className="shrink-0" /> Save
-                                </button>
-                            </Form>
-                        )}
+                        <Form className="space-y-5">
+                            <div>
+                                <label htmlFor="name">Name</label>
+                                <Field name="name" type="text" className="form-input" />
+                                <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
+                            </div>
+                            <button type="submit" className="btn btn-success w-full gap-2">
+                                <IconSave className="shrink-0" /> Save
+                            </button>
+                        </Form>
                     </Formik>
                 </div>
             </div>
@@ -170,4 +146,4 @@ const UpdateSpecificationComponent = ({ specificationId }: { specificationId: nu
     );
 };
 
-export default UpdateSpecificationComponent;
+export default UpdateTagComponent;

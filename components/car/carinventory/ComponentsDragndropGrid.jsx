@@ -27,7 +27,7 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
             setImageSections(organizedImages);
         }
     }, [initialImages]);
-    
+
 
     // Notify parent component about updated images
     useEffect(() => {
@@ -243,7 +243,6 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
                 selectionMode="multi"
             />
 
-            <h2 className="text-lg font-semibold">Upload Car Images</h2>
             <div>
                 <h3 className="text-md font-medium mb-2">Interior Images</h3>
                 {renderDropzone("interior")}

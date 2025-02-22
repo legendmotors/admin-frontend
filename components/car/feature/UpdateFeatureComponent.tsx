@@ -16,6 +16,7 @@ interface FeatureFormValues {
     name: string;
     slug: string;
     status: 'draft' | 'published';
+    mandatory: boolean;
 }
 
 interface Feature {
@@ -23,6 +24,7 @@ interface Feature {
     name: string;
     slug: string;
     status: 'draft' | 'published';
+    mandatory: boolean;
 }
 
 const UpdateFeatureComponent = ({ featureId }: { featureId: number }) => {
@@ -41,44 +43,12 @@ const UpdateFeatureComponent = ({ featureId }: { featureId: number }) => {
                     name: response.name,
                     slug: response.slug,
                     status: response.status,
+                    mandatory: response.mandatory, // ✅ Include mandatory field in initial values
                 });
-                setStatus(response.status);
             }
         };
         fetchFeature();
     }, [featureId]);
-
-    useEffect(() => {
-        const progressHandler = (data: { progress: number; message: string; status: string }) => {
-            if (data.progress) setProgress(data.progress);
-            if (data.message) setStatusMessage(data.message);
-
-            Swal.update({
-                html: renderProgressHtml(data.progress, data.message),
-            });
-
-            if (data.progress === 100 && data.status === 'completed') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Feature Updated Successfully!',
-                    text: 'The feature has been updated successfully.',
-                }).then(() => {
-                    window.location.href = '/feature/list';
-                });
-
-                socket.off('progress', progressHandler);
-                setTimeout(() => {
-                    setProgress(0);
-                    setStatusMessage('');
-                }, 2000);
-            }
-        };
-
-        socket.on('progress', progressHandler);
-        return () => {
-            socket.off('progress', progressHandler);
-        };
-    }, []);
 
     const renderProgressHtml = (progress: number, message: string) => `
         <div class="mb-5 space-y-5">
@@ -95,7 +65,9 @@ const UpdateFeatureComponent = ({ featureId }: { featureId: number }) => {
 
     const handleSubmit = async (values: FeatureFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
         Swal.fire({ title: 'Updating Feature...', html: renderProgressHtml(0, 'Initializing...'), showConfirmButton: false });
+
         const response = await FeatureService.updateFeature({ ...values, id: featureId, lang: i18n.language });
+
         if (response) {
             Swal.fire({ icon: 'success', title: 'Feature Updated Successfully!' }).then(() => {
                 window.location.href = '/feature/list';
@@ -120,16 +92,33 @@ const UpdateFeatureComponent = ({ featureId }: { featureId: number }) => {
                         onSubmit={handleSubmit}
                         enableReinitialize
                     >
-                        <Form className="space-y-5">
-                            <div>
-                                <label htmlFor="name">Name</label>
-                                <Field name="name" type="text" className="form-input" />
-                                <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
-                            </div>
-                            <button type="submit" className="btn btn-success w-full gap-2">
-                                <IconSave className="shrink-0" /> Save
-                            </button>
-                        </Form>
+                        {({ values, setFieldValue }) => (
+                            <Form className="space-y-5">
+                                <div>
+                                    <label htmlFor="name">Name</label>
+                                    <Field name="name" type="text" className="form-input" />
+                                    <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
+                                </div>
+
+                                {/* ✅ Toggle Button for Mandatory Field */}
+                                <div>
+                                    <label htmlFor="mandatory">Mandatory</label>
+                                    <label className="w-12 h-6 relative">
+                                        <input
+                                            type="checkbox"
+                                            className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
+                                            checked={values.mandatory}
+                                            onChange={() => setFieldValue('mandatory', !values.mandatory)} // ✅ Toggle inside Formik
+                                        />
+                                        <span className="outline_checkbox bg-icon border-2 border-gray-300 dark:border-white-dark block h-full rounded-full before:absolute before:left-1 before:bg-gray-300 dark:before:bg-white-dark before:bottom-1 before:w-4 before:h-4 before:rounded-full before:bg-[url('/assets/images/close.svg')] before:bg-no-repeat before:bg-center peer-checked:before:left-7 peer-checked:before:bg-[url('/assets/images/checked.svg')] peer-checked:border-primary peer-checked:before:bg-primary before:transition-all before:duration-300"></span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" className="btn btn-success w-full gap-2">
+                                    <IconSave className="shrink-0" /> Save
+                                </button>
+                            </Form>
+                        )}
                     </Formik>
                 </div>
             </div>

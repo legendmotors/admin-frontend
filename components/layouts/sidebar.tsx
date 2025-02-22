@@ -245,6 +245,15 @@ const Sidebar = () => {
                             </li>
 
                             <li className="menu nav-item">
+                                <Link href="/car-tags/list" className="group">
+                                    <div className="flex items-center">
+                                        <IconListCheck className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Manage Car Tags</span>
+                                    </div>
+                                </Link>
+                            </li>
+
+                            <li className="menu nav-item">
                                 <Link href="/inventory/list" className="group">
                                     <div className="flex items-center">
                                         <IconListCheck className="shrink-0 group-hover:!text-primary" />

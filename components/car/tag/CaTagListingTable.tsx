@@ -5,26 +5,14 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconEye from '@/components/icon/icon-eye';
 import ReusableTable from '@/components/common/data-table/ReusableTable';
-import FeatureService from '@/services/FeatureService';
+import CarTagService from '@/services/CarTagService';
 
-const CarFeatureListingTable: React.FC = () => {
+
+const CaTagListingTable: React.FC = () => {
     // Columns for the brand table
     const brandColumns = [
         { accessor: 'name', title: 'Name', sortable: true },
         { accessor: 'key', title: 'Slug', sortable: true },
-        {
-            accessor: 'mandatory',
-            title: 'Mandatory',
-            sortable: true,
-            render: ({ mandatory }: { mandatory: boolean }) => {
-                const badgeClass = mandatory ? 'badge bg-success' : 'badge bg-danger';
-                return (
-                    <span className={badgeClass}>
-                        {mandatory ? 'Yes' : 'No'}
-                    </span>
-                );
-            },
-        },
         {
             accessor: 'status',
             title: 'Status',
@@ -54,14 +42,14 @@ const CarFeatureListingTable: React.FC = () => {
     const actions = [
         {
             label: 'Edit',
-            href: '/feature/edit',
+            href: '/car-tags/edit',
             className: 'btn btn-sm btn-info',
             icon: <IconEdit className="h-4.5 w-4.5" />,
             show: true, // Always show Edit
         },
         {
             label: 'View',
-            href: '/feature/view',
+            href: '/car-tags/view',
             className: 'btn btn-sm btn-info',
             icon: <IconEye />,
             show: false, // Always show Edit
@@ -97,14 +85,14 @@ const CarFeatureListingTable: React.FC = () => {
                     { value: 'published', label: 'Published' },
                     { value: 'draft', label: 'Draft' },
                 ]}
-                listService={FeatureService.listFeatures}
-                deleteService={FeatureService.deleteFeature}
-                bulkDeleteService={FeatureService.bulkDeleteFeatures}
+                listService={CarTagService.listTags}
+                deleteService={CarTagService.deleteTag}
+                bulkDeleteService={CarTagService.bulkDeleteTags}
                 actions={actions}
-                addUrl={"/feature/add"}
+                addUrl={"/car-tags/add"}
             />
         </div>
     );
 };
 
-export default CarFeatureListingTable;
+export default CaTagListingTable;

@@ -3,12 +3,16 @@ import themeConfigSlice from '@/store/themeConfigSlice';
 import fileSelectionSlice from '@/store/fileSelectionSlice';
 import stepSlice from '@/store/stepSlice'; // ✅ Import the new step slice
 import formSlice from '@/store/formSlice'; // ✅ Import the new step slice
+import filterOptionsSlice from '@/store/filterOptionsSlice'; // ✅ Import the new step slice
+import carSlice from '@/store/carSlice'; // ✅ Import the new step slice
 
 const rootReducer = combineReducers({
   themeConfig: themeConfigSlice,
   fileSelection: fileSelectionSlice,
   step: stepSlice, 
   form: formSlice,
+  filters: filterOptionsSlice,
+  car: carSlice,
 });
 
 const store = configureStore({

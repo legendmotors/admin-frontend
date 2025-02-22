@@ -13,6 +13,19 @@ const CarSpecificationListingTable: React.FC = () => {
         { accessor: 'name', title: 'Name', sortable: true },
         { accessor: 'key', title: 'Slug', sortable: true },
         {
+            accessor: 'mandatory',
+            title: 'Mandatory',
+            sortable: true,
+            render: ({ mandatory }: { mandatory: boolean }) => {
+                const badgeClass = mandatory ? 'badge bg-success' : 'badge bg-danger';
+                return (
+                    <span className={badgeClass}>
+                        {mandatory ? 'Yes' : 'No'}
+                    </span>
+                );
+            },
+        },
+        {
             accessor: 'status',
             title: 'Status',
             sortable: true,

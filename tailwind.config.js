@@ -22,17 +22,17 @@ module.exports = {
                     'dark-light': 'rgba(67,97,238,.15)',
                 },
                 secondary: {
-                    DEFAULT: '#805dca',
+                    DEFAULT: '#ED8721',
                     light: '#ebe4f7',
                     'dark-light': 'rgb(128 93 202 / 15%)',
                 },
                 success: {
-                    DEFAULT: '#00ab55',
+                    DEFAULT: '#1B7F5C',
                     light: '#ddf5f0',
                     'dark-light': 'rgba(0,171,85,.15)',
                 },
                 danger: {
-                    DEFAULT: '#e7515a',
+                    DEFAULT: '#9C1C1C',
                     light: '#fff5f5',
                     'dark-light': 'rgba(231,81,90,.15)',
                 },
@@ -42,7 +42,7 @@ module.exports = {
                     'dark-light': 'rgba(226,160,63,.15)',
                 },
                 info: {
-                    DEFAULT: '#2196f3',
+                    DEFAULT: '#1E4D7B',
                     light: '#e7f7ff',
                     'dark-light': 'rgba(33,150,243,.15)',
                 },

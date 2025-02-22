@@ -4,8 +4,8 @@ export function middleware(req: NextRequest) {
     const token = req.cookies.get('token')?.value;
     const { pathname } = req.nextUrl;
 
-    console.log('Middleware triggered for pathname:', pathname);
-    console.log('Token:', token);
+    // console.log('Middleware triggered for pathname:', pathname);
+    // console.log('Token:', token);
 
     // Prevent unauthenticated users from accessing protected routes
     if (!token) {

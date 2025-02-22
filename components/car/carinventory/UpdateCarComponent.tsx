@@ -3,7 +3,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { setStep, setFormData, setImages } from '@/store/formSlice'; // Adjust paths
+import { setStep, setFormData, setImages, setBrochure } from '@/store/formSlice'; // Adjust paths
 import { IRootState, AppDispatch } from '@/store/index';
 import IconThumbUp from '@/components/icon/icon-thumb-up';
 import IconUser from '@/components/icon/icon-user';
@@ -21,6 +21,9 @@ import YearService from '@/services/YearService';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import CarService from '@/services/CarService';
 import ComponentsDragndropGrid from './ComponentsDragndropGrid.jsx';
+import { io } from 'socket.io-client';
+import CarTagService from '@/services/CarTagService';
+import BrochureUpload from './BrochureUpload';
 
 interface Specification {
     id: number;
@@ -43,18 +46,59 @@ interface Image {
 }
 
 
+interface Tag {
+    id: number;
+    name: string;
+}
+
+
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+
 const UpdateCarComponent = ({ carId }: { carId: number }) => {
     const dispatch: AppDispatch = useDispatch();
+
+    // Redux states
     const currentStep = useSelector((state: IRootState) => state.form.currentStep);
     const formData = useSelector((state: IRootState) => state.form.formData);
+    const images = useSelector((state: IRootState) => state.form.images);
+    const brochureFile = useSelector((state: IRootState) => state.form.brochureFile);
 
+    // Local states
     const [exchangeRate, setExchangeRate] = useState<number | null>(null);
     const [selectedBrand, setSelectedBrand] = useState<{ value: number; label: string } | null>(null);
     const [selectedModel, setSelectedModel] = useState<{ value: number; label: string } | null>(null);
     const [selectedTrim, setSelectedTrim] = useState<{ value: number; label: string } | null>(null);
     const [selectedYear, setSelectedYear] = useState<{ value: number; label: string } | null>(null);
-    const images = useSelector((state: IRootState) => state.form.images); // Fetch images from Redux
-    console.log(selectedBrand, "selectedBrand");
+    const [tags, setTags] = useState<Tag[]>([]);
+    const [specifications, setSpecifications] = useState<Specification[]>([]);
+    const [selectedSpecificationValues, setSelectedSpecificationValues] = useState<Record<string, string | null>>({});
+    const [features, setFeatures] = useState<Feature[]>([]);
+    const [selectedFeatureValues, setSelectedFeatureValues] = useState<Record<number, number[]>>({});
+    const [loading, setLoading] = useState<boolean>(false);
+
+    // Disconnect the socket when the component unmounts
+    useEffect(() => {
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
+
+    // -------------------------------
+    // Fetching: Tags
+    // -------------------------------
+    useEffect(() => {
+        const fetchTags = async () => {
+            try {
+                const response = await CarTagService.listTags({ limit: 100 });
+                if (response && response.data) {
+                    setTags(response.data);
+                }
+            } catch (error) {
+                console.error('Error fetching tags:', error);
+            }
+        };
+        fetchTags();
+    }, []);
 
 
     const preloadCarData = async (carId: number) => {
@@ -79,13 +123,15 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                     features: data.FeatureValues?.map((feature: { id: number }) => ({
                         featureValueId: feature.id,
                     })) || [],
-                    
+
                     images: data.CarImages?.map((image: { fileId: string; type: string; order: number }) => ({
                         fileId: image.fileId,
                         type: image.type,
                         order: image.order,
                     })) || [],
-                    
+
+                    tags: data.Tags?.map((tag: { id: number }) => tag.id) || [],
+
                 };
 
                 console.log('Transformed Data:', transformedData);
@@ -101,9 +147,10 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                     id: image.id, // Include ID if needed
                     thumbnailPath: image.FileSystem?.thumbnailPath || image.FileSystem?.path, // Add thumbnail or path
                 })) || [];
-                
+
 
                 dispatch(setImages(transformedImages)); // Push to Redux
+                dispatch(setBrochure(data.brochureFile)); // Push to Redux
 
                 // Set the dropdown states
                 setSelectedSpecificationValues(
@@ -115,7 +162,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                         {} as Record<string, string> // Initialize the accumulator as a Record<string, string>
                     )
                 );
-                
+
                 setSelectedFeatureValues(
                     response.FeatureValues?.reduce(
                         (acc: Record<number, number[]>, featureValue: { Feature: { id: number }; id: number }) => {
@@ -129,7 +176,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                         {} as Record<number, number[]> // Initialize the accumulator as a Record<number, number[]>
                     )
                 );
-                
+
 
 
                 setSelectedBrand({
@@ -255,11 +302,6 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
     };
 
 
-
-    console.log('Current Step:', currentStep); // Log the current step
-    console.log('Form Data:', formData); // Log the form data
-
-
     useEffect(() => {
         // Fetch the current exchange rate of AED to USD
         const fetchExchangeRate = async () => {
@@ -290,7 +332,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
         horsepower: '',
         featured: false,
         premium: false,
-
+        tags: []
     };
 
     // Validation schema for the first step
@@ -351,6 +393,9 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                 type: img.type,
                 order: img.order,
             })),
+            // Use tags from the form values
+            tags: values.tags,
+            brochureId: brochureFile?.id
         };
     };
 
@@ -380,48 +425,44 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
             console.log('Moved Back to Step:', currentStep - 1); // Log the new step after moving back
         }
     };
-    const [specifications, setSpecifications] = useState<Specification[]>([]);
-    const [selectedSpecificationValues, setSelectedSpecificationValues] = useState<Record<string, string | null>>({}); const [loading, setLoading] = useState<boolean>(false);
-    console.log(selectedSpecificationValues, "selectedSpecificationValues");
-
     useEffect(() => {
-            const fetchSpecificationsWithValues = async () => {
-                try {
-                    setLoading(true);
-        
-                    // Fetch all specifications without pagination
-                    const specificationsResponse = await SpecificationService.listSpecifications({ limit: 0 }); // Set limit to 0 to fetch all specifications
-                    const specifications = specificationsResponse.data;
-        
-                    // Fetch values for each specification individually
-                    const specificationsWithValues = await Promise.all(
-                        specifications.map(async (spec: any) => {
-                            const response = await SpecificationService.listSpecificationValues({
-                                specificationId: spec.id,
-                                limit: 0, // Fetch all values for this specification
-                            });
-                            const values = response.data.map((value: any) => ({
-                                value: value.id,
-                                label: value.name,
-                            }));
-        
-                            return {
-                                ...spec,
-                                values, // Only values related to this specification
-                            };
-                        })
-                    );
-        
-                    setSpecifications(specificationsWithValues); // Set all fetched specifications with their values
-                    setLoading(false);
-                } catch (error) {
-                    console.error('Error fetching specifications and values:', error);
-                    setLoading(false);
-                }
-            };
-        
-            fetchSpecificationsWithValues();
-        }, []);
+        const fetchSpecificationsWithValues = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch all specifications without pagination
+                const specificationsResponse = await SpecificationService.listSpecifications({ limit: 0 }); // Set limit to 0 to fetch all specifications
+                const specifications = specificationsResponse.data;
+
+                // Fetch values for each specification individually
+                const specificationsWithValues = await Promise.all(
+                    specifications.map(async (spec: any) => {
+                        const response = await SpecificationService.listSpecificationValues({
+                            specificationId: spec.id,
+                            limit: 0, // Fetch all values for this specification
+                        });
+                        const values = response.data.map((value: any) => ({
+                            value: value.id,
+                            label: value.name,
+                        }));
+
+                        return {
+                            ...spec,
+                            values, // Only values related to this specification
+                        };
+                    })
+                );
+
+                setSpecifications(specificationsWithValues); // Set all fetched specifications with their values
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching specifications and values:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchSpecificationsWithValues();
+    }, []);
 
     const handleSpecificationChange = (key: string, value: any) => {
         setSelectedSpecificationValues((prevValues) => ({
@@ -431,41 +472,37 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
     };
 
 
-    const [features, setFeatures] = useState<Feature[]>([]);
-    const [selectedFeatureValues, setSelectedFeatureValues] = useState<Record<number, number[]>>({});
-    console.log(selectedFeatureValues, "selectedFeatureValues");
-
     useEffect(() => {
-            const fetchFeaturesWithValues = async () => {
-                try {
-                    // Fetch all features without pagination
-                    const featureResponse = await FeatureService.listFeatures({ limit: 0 }); // Set limit to 0 to fetch all features
-                    const features = featureResponse.data;
-        
-                    // Fetch feature values for each feature
-                    const featuresWithValues = await Promise.all(
-                        features.map(async (feature: any) => {
-                            const valuesResponse = await FeatureService.listFeatureValues({
-                                featureId: feature.id,
-                                limit: 0, // Fetch all values for this feature
-                            });
-                            const values = valuesResponse.data.map((value: any) => ({
-                                id: value.id,
-                                name: value.name,
-                                slug: value.slug,
-                            }));
-                            return { ...feature, values };
-                        })
-                    );
-        
-                    setFeatures(featuresWithValues); // Set all fetched features with their values
-                } catch (error) {
-                    console.error('Error fetching features and values:', error);
-                }
-            };
-        
-            fetchFeaturesWithValues();
-        }, []);
+        const fetchFeaturesWithValues = async () => {
+            try {
+                // Fetch all features without pagination
+                const featureResponse = await FeatureService.listFeatures({ limit: 0 }); // Set limit to 0 to fetch all features
+                const features = featureResponse.data;
+
+                // Fetch feature values for each feature
+                const featuresWithValues = await Promise.all(
+                    features.map(async (feature: any) => {
+                        const valuesResponse = await FeatureService.listFeatureValues({
+                            featureId: feature.id,
+                            limit: 0, // Fetch all values for this feature
+                        });
+                        const values = valuesResponse.data.map((value: any) => ({
+                            id: value.id,
+                            name: value.name,
+                            slug: value.slug,
+                        }));
+                        return { ...feature, values };
+                    })
+                );
+
+                setFeatures(featuresWithValues); // Set all fetched features with their values
+            } catch (error) {
+                console.error('Error fetching features and values:', error);
+            }
+        };
+
+        fetchFeaturesWithValues();
+    }, []);
 
 
     const handleFeatureCheckboxChange = (featureId: number, valueId: number) => {
@@ -511,29 +548,11 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
     const handleUpdate = async () => {
         try {
             console.log('Updating Payload:', formData); // Debug the final payload
-    
-            // Convert formData object to FormData instance
-            const formDataToSend = new FormData();
-    
-            // Add all key-value pairs from formData to formDataToSend
-            Object.entries(formData).forEach(([key, value]) => {
-                if (Array.isArray(value)) {
-                    // For arrays (like images or specifications), add each item individually
-                    value.forEach((item, index) => {
-                        formDataToSend.append(`${key}[${index}]`, typeof item === 'object' ? JSON.stringify(item) : item);
-                    });
-                } else if (typeof value === 'object' && value !== null) {
-                    // For objects, stringify them
-                    formDataToSend.append(key, JSON.stringify(value));
-                } else {
-                    // For other primitive values, add them directly
-                    formDataToSend.append(key, value as string);
-                }
-            });
-    
+
+
             // Call the `updateCar` service
-            const response = await CarService.updateCar(formDataToSend);
-    
+            const response = await CarService.updateCar(formData);
+
             if (response) {
                 console.log('Car updated successfully:', response);
                 alert('Car updated successfully!');
@@ -546,8 +565,8 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
             alert('An error occurred while updating the car.');
         }
     };
-    
-    
+
+
 
     if (loading) {
         return <p>Loading specifications...</p>;
@@ -641,40 +660,39 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                             >
                                 {({ values, setFieldValue, isValid, dirty, errors, submitCount, }) => (
                                     <Form className="space-y-8 mt-2">
-                                        <div className="flex gap-4 border rounded-[15px] p-4">
-                                            {/* Featured Toggle */}
-                                            <div>
-                                                <label className="inline-flex ">
-                                                    <Field
-                                                        type="checkbox"
-                                                        name="featured"
-                                                        className="form-checkbox"
-                                                    />
-                                                    <span className='mt-[2px]'> Featured</span>
-                                                </label>
-                                                <ErrorMessage
-                                                    name="featured"
-                                                    component="div"
-                                                    className="absolute text-red-500 text-sm mt-1"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="inline-flex ">
-                                                    <Field
-                                                        type="checkbox"
-                                                        name="premium"
-                                                        className="form-checkbox"
-                                                    />
-                                                    <span className='mt-[2px]'> Premium</span>
-                                                </label>
-                                                <ErrorMessage
-                                                    name="premium"
-                                                    component="div"
-                                                    className="absolute text-red-500 text-sm mt-1"
-                                                />
-                                            </div>
+                                        <div className="border rounded-[15px] px-5 pt-5 pb-3 relative">
+                                            <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                SELECT TAGS
+                                            </h2>
+                                            <Field name="tags">
+                                                {({ field, form }: any) => (
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                                        {tags.map((tag) => (
+                                                            <div key={tag.id} className="flex items-center">
+                                                                <label className="inline-flex">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="form-checkbox"
+                                                                        checked={(field.value || []).includes(tag.id)}
+                                                                        onChange={() => {
+                                                                            if ((field.value || []).includes(tag.id)) {
+                                                                                const newValue = (field.value || []).filter((id: number) => id !== tag.id);
+                                                                                form.setFieldValue('tags', newValue);
+                                                                            } else {
+                                                                                form.setFieldValue('tags', [...(field.value || []), tag.id]);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <span className="ml-1">{tag.name}</span>
+                                                                </label>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </Field>
 
                                         </div>
+
 
                                         <div className='border rounded-[15px] p-5 relative space-y-6 '>
                                             <h2 className='text-lg font-bold absolute top-[-14px] bg-white px-1'>GENERAL CAR DETAILS</h2>
@@ -959,6 +977,10 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                                         initialImages={images} // Pass initial images from Redux
                                     />
 
+                                    <BrochureUpload
+                                        onFileUpload={(file) => dispatch(setBrochure(file))}
+                                        initialFile={brochureFile}
+                                    />
 
                                     <div className="flex justify-between mt-4">
                                         <button
@@ -983,7 +1005,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
 
                                                 const payload = {
                                                     ...formData,
-                                                    id:carId,
+                                                    id: carId,
                                                     images: transformedImages, // Include transformed images in the form data
                                                 };
 
