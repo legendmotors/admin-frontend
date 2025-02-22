@@ -1,8 +1,5 @@
 
-const API_URL: string =
-    document.domain === 'localhost'
-        ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`
-        : `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`
+const API_URL: string = process.env.NEXT_PUBLIC_IMAGE_BASE_URL as string;
 
 const Apis: Record<string, string> = {
     // Authentication API

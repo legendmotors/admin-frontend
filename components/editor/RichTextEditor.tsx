@@ -1,11 +1,13 @@
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-// Define the types for the props
+// Dynamically import ReactQuill so it's only loaded on the client.
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+
 interface RichTextEditorProps {
-  initialValue?: string; // initial value of the editor, can be undefined
-  onChange?: (value: string) => void; // callback function when the value changes
+  initialValue?: string;
+  onChange?: (value: string) => void;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialValue, onChange }) => {
@@ -13,7 +15,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialValue, onChange 
 
   const handleChange = (value: string) => {
     setValue(value);
-    if (onChange) onChange(value); // Optionally, call onChange if passed
+    if (onChange) onChange(value);
   };
 
   return <ReactQuill theme="snow" value={value} onChange={handleChange} />;
