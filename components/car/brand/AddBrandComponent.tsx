@@ -48,6 +48,7 @@ const AddBrandComponent = () => {
         e.stopPropagation(); // Prevent the click event from propagating
         setLogo(null); // Reset the logo file
         setLogoPreview(null); // Reset the preview
+        dispatch(setSelectedFiles([]));
     };
 
     useEffect(() => {
@@ -121,10 +122,7 @@ const AddBrandComponent = () => {
         const payload = {
             name: values.name,
             description: values.description,
-            metaTitle: values.metaTitle,
-            metaDescription: values.metaDescription,
-            metaKeywords: values.metaKeywords,
-            logo: selectedFiles.map((file: any) => file.id), // ✅ Send selectedFiles as JSON array
+            logo: selectedFiles.length > 0 ? selectedFiles[0].id : null, // ✅ Send selectedFiles as JSON array
         };
 
 
@@ -344,45 +342,6 @@ const AddBrandComponent = () => {
                                                     <p className="text-gray-500">Drag & drop an image here, or click to select one</p>
                                                 </div>
                                             )}
-                                        </div>
-                                    </div>
-
-
-                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                        <div className={submitCount ? (errors.metaTitle ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="metaTitle">Meta Title</label>
-                                            <Field
-                                                name="metaTitle"
-                                                type="text"
-                                                id="metaTitle"
-                                                placeholder="Enter Meta Title"
-                                                className="form-input"
-                                            />
-                                            <ErrorMessage name="metaTitle" component="div" className="mt-1 text-danger" />
-                                        </div>
-
-                                        <div className={submitCount ? (errors.metaDescription ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="metaDescription">Meta Description</label>
-                                            <Field
-                                                name="metaDescription"
-                                                type="text"
-                                                id="metaDescription"
-                                                placeholder="Enter Meta Description"
-                                                className="form-input"
-                                            />
-                                            <ErrorMessage name="metaDescription" component="div" className="mt-1 text-danger" />
-                                        </div>
-
-                                        <div className={submitCount ? (errors.metaKeywords ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="metaKeywords">Meta Keywords</label>
-                                            <Field
-                                                name="metaKeywords"
-                                                type="text"
-                                                id="metaKeywords"
-                                                placeholder="Enter Meta Keywords"
-                                                className="form-input"
-                                            />
-                                            <ErrorMessage name="metaKeywords" component="div" className="mt-1 text-danger" />
                                         </div>
                                     </div>
 

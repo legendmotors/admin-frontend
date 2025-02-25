@@ -67,7 +67,7 @@ const ComponentsLightbox = () => {
                     </div>
                     <div className="flex-1">
                         <h4 className="text-lg font-semibold text-primary">All controls</h4>
-                        <p className="media-text">Caption, slideshow, thumbnails and fullscreen buttons, tap to toggle controls</p>
+                        <p className="media-text">Caption, slideshow, thumbnailPaths and fullscreen buttons, tap to toggle controls</p>
                     </div>
                 </div>
                 <div className="flex">
@@ -76,7 +76,7 @@ const ComponentsLightbox = () => {
                     </div>
                     <div className="flex-1">
                         <h4 className="text-lg font-semibold text-primary">Minimal</h4>
-                        <p className="media-text">No caption, no slideshow, no thumbnails, no fullscreen, tap to close</p>
+                        <p className="media-text">No caption, no slideshow, no thumbnailPaths, no fullscreen, tap to close</p>
                     </div>
                 </div>
                 {value === 'all controls' ? (

@@ -7,6 +7,18 @@ import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconEye from '@/components/icon/icon-eye';
 import ReusableTable from '@/components/common/data-table/ReusableTable';
 
+interface BrandRow {
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    status: string;
+    logo?: {
+        thumbnailPath?: string;
+        // add any other fields you expect, e.g. originalPath, etc.
+    };
+}
+
 const BrandListingTable: React.FC = () => {
     const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_IMAGE_BASE_URL;
 
@@ -15,8 +27,8 @@ const BrandListingTable: React.FC = () => {
         {
             accessor: 'logo',
             title: 'Logo',
-            render: ({ logo }: { logo: any[] }) => {
-                const imageUrl = Array.isArray(logo) && logo.length > 0 ? logo[0]?.thumbnail || logo[0]?.original : null;
+            render: ({ logo }: BrandRow) => {
+                const imageUrl = logo?.thumbnailPath;
                 return imageUrl ? (
                     <img
                         src={`${IMAGE_BASE_URL}${imageUrl}`}

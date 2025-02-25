@@ -1,4 +1,3 @@
-
 const API_URL: string = process.env.NEXT_PUBLIC_IMAGE_BASE_URL as string;
 
 const Apis: Record<string, string> = {
@@ -10,43 +9,42 @@ const Apis: Record<string, string> = {
     GetDeleteUserList: `${API_URL}/api/auth/user/delete`,
 
     // 🔹 OTP APIs
-    RequestOtp: `${API_URL}/api/auth/requestOtp`, // Send OTP to user email
-    VerifyOtp: `${API_URL}/api/auth/verifyOtp`, // Verify OTP before registration
-    ResendOtp: `${API_URL}/api/auth/resendOtp`, // Resend OTP if expired
+    RequestOtp: `${API_URL}/api/auth/requestOtp`,
+    VerifyOtp: `${API_URL}/api/auth/verifyOtp`,
+    ResendOtp: `${API_URL}/api/auth/resendOtp`,
 
-    // 🔹 Password Recovery APIs (Optional)
-    ForgotPassword: `${API_URL}/api/auth/forgotPassword`, // Request password reset
-    ResetPassword: `${API_URL}/api/auth/resetPassword`, // Reset password with token
+    // 🔹 Password Recovery APIs
+    ForgotPassword: `${API_URL}/api/auth/forgotPassword`,
+    ResetPassword: `${API_URL}/api/auth/resetPassword`,
 
-    // User Apis
+    // User APIs
     GetUserList: `${API_URL}/api/auth/user/getUserList`,
     DeleteUser: `${API_URL}/api/auth/user/delete`,
     BulkDeleteUser: `${API_URL}/api/auth/user/bulkDelete`,
-    GetUserById: `${API_URL}/api/auth/user/getUserById`,  // ✅ Fetch a single user by ID
-    RestoreUser: `${API_URL}/api/auth/user/restore`,  // ✅ Restore a soft-deleted user
-    UpdateUserStatus: `${API_URL}/api/auth/user/UpdateUserStatus`,  // ✅ Restore a soft-deleted user
-    UpdateUser: `${API_URL}/api/auth/user/Update`,  // ✅ Restore a soft-deleted user
+    GetUserById: `${API_URL}/api/auth/user/getUserById`,
+    RestoreUser: `${API_URL}/api/auth/user/restore`,
+    UpdateUserStatus: `${API_URL}/api/auth/user/UpdateUserStatus`,
+    UpdateUser: `${API_URL}/api/auth/user/Update`,
 
     // Roles APIs
-    CreateRole: `${API_URL}/api/auth/roles/create`, // Create a new role
-    GetAllRoles: `${API_URL}/api/auth/roles`, // Get all roles with pagination, search, and sorting
-    GetRoleById:`${API_URL}/api/auth/roles/getById`,
-    UpdateRole:`${API_URL}/api/auth/roles/update`,
-    AssignPermissionsToRole: `${API_URL}/api/auth/roles/assignPermissions`, // Assign permissions to a role
-    GetPermissionsForRole: `${API_URL}/api/auth/roles/getPermissions`, // Get permissions for a specific role
+    CreateRole: `${API_URL}/api/auth/roles/create`,
+    GetAllRoles: `${API_URL}/api/auth/roles`,
+    GetRoleById: `${API_URL}/api/auth/roles/getById`,
+    UpdateRole: `${API_URL}/api/auth/roles/update`,
+    AssignPermissionsToRole: `${API_URL}/api/auth/roles/assignPermissions`,
+    GetPermissionsForRole: `${API_URL}/api/auth/roles/getPermissions`,
 
     // Permissions APIs
-    CreatePermission: `${API_URL}/api/auth/permissions/create`, // Create a new permission
-    GetAllPermissions: `${API_URL}/api/auth/permissions`, // Get all permissions with pagination, search, and sorting
-    GetPermissionById: `${API_URL}/api/auth/permissions/getById`, // Get a specific permission by ID
-    UpdatePermission: `${API_URL}/api/auth/permissions/update`, // Update a specific permission
-    DeletePermission: `${API_URL}/api/auth/permissions/delete`, // Delete a specific permission
-
+    CreatePermission: `${API_URL}/api/auth/permissions/create`,
+    GetAllPermissions: `${API_URL}/api/auth/permissions`,
+    GetPermissionById: `${API_URL}/api/auth/permissions/getById`,
+    UpdatePermission: `${API_URL}/api/auth/permissions/update`,
+    DeletePermission: `${API_URL}/api/auth/permissions/delete`,
 
     // User Role Assignment API
-    AssignRoleToUser: `${API_URL}/api/users/assignRole`, // Assign a role to a user
+    AssignRoleToUser: `${API_URL}/api/users/assignRole`,
 
-    // Brand Apis
+    // Brand APIs
     GetBrandList: `${API_URL}/api/brand/list`,
     AddBrand: `${API_URL}/api/brand/create`,
     UpdateBrand: `${API_URL}/api/brand/update`,
@@ -125,11 +123,11 @@ const Apis: Record<string, string> = {
     BulkDeleteCars: `${API_URL}/api/car/bulk-delete`,
 
     // Status APIs
-    UpdateStatus: '/api/status/update',               // POST - Update status for a single item
-    BulkUpdateStatus: '/api/status/bulk-update',      // POST - Bulk update status for multiple items
-    GetItemsByStatus: '/api/status/filter',           // GET - Get items by status (draft/published)
-    GetStatusById: '/api/status/status-by-id',        // GET - Get item status by ID
-    UpdateStatusById: '/api/status/update-by-id',  
+    UpdateStatus: `${API_URL}/api/status/update`,
+    BulkUpdateStatus: `${API_URL}/api/status/bulk-update`,
+    GetItemsByStatus: `${API_URL}/api/status/filter`,
+    GetStatusById: `${API_URL}/api/status/status-by-id`,
+    UpdateStatusById: `${API_URL}/api/status/update-by-id`,
 
     // CarTag APIs
     GetTagList: `${API_URL}/api/tag/list`,
@@ -140,71 +138,96 @@ const Apis: Record<string, string> = {
     GetTagBySlug: `${API_URL}/api/tag/getBySlug`,
     BulkDeleteTags: `${API_URL}/api/tag/bulk-delete`,
 
+    // -------------------------------
+    // New Blog Endpoints
+    // -------------------------------
 
+    // Blog Post APIs
+    GetBlogPostList: `${API_URL}/api/blog-post/list`,
+    AddBlogPost: `${API_URL}/api/blog-post/create`,
+    UpdateBlogPost: `${API_URL}/api/blog-post/update`,
+    DeleteBlogPost: `${API_URL}/api/blog-post/delete`,
+    GetBlogPostById: `${API_URL}/api/blog-post/getById`,
+    GetBlogPostBySlug: `${API_URL}/api/blog-post/getBySlug`,
+    BulkDeleteBlogPosts: `${API_URL}/api/blog-post/bulk-delete`,
 
+    // Blog Category APIs
+    GetBlogCategoryList: `${API_URL}/api/blog-category/list`,
+    AddBlogCategory: `${API_URL}/api/blog-category/create`,
+    UpdateBlogCategory: `${API_URL}/api/blog-category/update`,
+    DeleteBlogCategory: `${API_URL}/api/blog-category/delete`,
+    GetBlogCategoryById: `${API_URL}/api/blog-category/getById`,
+    BulkDeleteBlogCategories: `${API_URL}/api/blog-category/bulk-delete`,
 
-    // Dashboard
-    GetOrderByStatus: `${API_URL}/api/order/status`,
-    GetAllStatusOrder: `${API_URL}/api/order/count`,
+    // Blog Tag APIs
+    GetBlogTagList: `${API_URL}/api/blog-tag/list`,
+    AddBlogTag: `${API_URL}/api/blog-tag/create`,
+    UpdateBlogTag: `${API_URL}/api/blog-tag/update`,
+    DeleteBlogTag: `${API_URL}/api/blog-tag/delete`,
+    GetBlogTagById: `${API_URL}/api/blog-tag/getById`,
+    GetBlogTagBySlug: `${API_URL}/api/blog-tag/getBySlug`,
+    BulkDeleteBlogTags: `${API_URL}/api/blog-tag/bulk-delete`,
 
-    // Vendor API
-    CreateSupplierList: `${API_URL}/api/supplier/create`,
-    CreateSupplierProduct: `${API_URL}/api/supplier/product-add`,
-    GetAllSellerList: `${API_URL}/api/supplier/list`,
-    GetUpdateSellerList: `${API_URL}/api/supplier/update`,
-    GetDeleteSellerList: `${API_URL}/api/supplier/delete`,
+    // Blog Type APIs
+    GetBlogTypeList: `${API_URL}/api/blog-type/list`,
+    AddBlogType: `${API_URL}/api/blog-type/create`,
+    UpdateBlogType: `${API_URL}/api/blog-type/update`,
+    DeleteBlogType: `${API_URL}/api/blog-type/delete`,
+    GetBlogTypeById: `${API_URL}/api/blog-type/getById`,
+    BulkDeleteBlogTypes: `${API_URL}/api/blog-type/bulk-delete`,
 
-    // Location API
-    GetAllLocationCreate: `${API_URL}/api/location/create`,
-    GetAllLocationList: `${API_URL}/api/location/list`,
-    GetLocationDeleteById: `${API_URL}/api/location/delete`,
-    GetLocationUpdate: `${API_URL}/api/location/update`,
+    // Blog Comment APIs
+    GetBlogCommentList: `${API_URL}/api/blog-comment/list`,
+    AddBlogComment: `${API_URL}/api/blog-comment/create`,
+    UpdateBlogComment: `${API_URL}/api/blog-comment/update`,
+    DeleteBlogComment: `${API_URL}/api/blog-comment/delete`,
+    GetBlogCommentById: `${API_URL}/api/blog-comment/getById`,
+    BulkDeleteBlogComments: `${API_URL}/api/blog-comment/bulk-delete`,
 
-    // Area API
-    CreateAreaList: `${API_URL}/api/location/area/create`,
-    GetAllAreaList: `${API_URL}/api/location/area/list`,
-    GetAreaDeleteById: `${API_URL}/api/location/area/delete`,
-    GetAreaUpdate: `${API_URL}/api/location/area/update`,
-    GetAllAreaByLocation: `${API_URL}/api/location/area/getAllAreaList?locationId=`,
+    // Page endpoints
+    GetPageList: `${API_URL}/api/page/list`,
+    AddPage: `${API_URL}/api/page/create`,
+    UpdatePage: `${API_URL}/api/page/update`,
+    DeletePage: `${API_URL}/api/page/delete`,
+    GetPageById: `${API_URL}/api/page/getById`,
+    GetPageBySlug: `${API_URL}/api/page/getBySlug`,
+    BulkDeletePages: `${API_URL}/api/page/bulk-delete`,
 
-    // Category API
-    CreateCategoryList: `${API_URL}/api/category/create`,
-    GetAllCategoryList: `${API_URL}/api/category/main-list`,
-    GetUpdateCategoryList: `${API_URL}/api/category/main-list/update`,
+    // Page Section endpoints
+    GetPageSectionList: `${API_URL}/api/page-section/list`,
+    AddPageSection: `${API_URL}/api/page-section/create`,
+    UpdatePageSection: `${API_URL}/api/page-section/update`,
+    DeletePageSection: `${API_URL}/api/page-section/delete`,
+    GetPageSectionById: `${API_URL}/api/page-section/getById`,
+    GetPageSectionBySlug: `${API_URL}/api/page-section/getBySlug`,
+    BulkDeletePageSections: `${API_URL}/api/page-section/bulk-delete`,
 
-    // Subcategory API
-    CreateSubCategoryList: `${API_URL}/api/category/create-sub`,
-    GetAllSubCategoryList: `${API_URL}/api/category/sub-list`,
-    GetUpdateSubCategoryList: `${API_URL}/api/category/sub-list/update`,
-    GetSubDeleteById: `${API_URL}/api/category/sub-list/delete`,
+    // Banner endpoints
+    GetBannerList: `${API_URL}/api/banner/list`,
+    AddBanner: `${API_URL}/api/banner/create`,
+    UpdateBanner: `${API_URL}/api/banner/update`,
+    DeleteBanner: `${API_URL}/api/banner/delete`,
+    GetBannerById: `${API_URL}/api/banner/getById`,
+    GetBannerBySlug: `${API_URL}/api/banner/getBySlug`,
+    BulkDeleteBanners: `${API_URL}/api/banner/bulk-delete`,
 
-    // Child Category API
-    GetAllSubCategory: `${API_URL}/api/category/getAllSubCategory?categoryId=`,
-    CreateChildCategory: `${API_URL}/api/category/create-sub-child`,
-    GetAllChildCategoryList: `${API_URL}/api/category/list`,
-    GetChildDeleteById: `${API_URL}/api/category/child/deleteById`,
-    GetAllSubChildCategory: `${API_URL}/api/category/getAllSubChildCategory?subcategoryId=`,
+    // Newsletter endpoints
+    AddNewsletter: `${API_URL}/api/newsletter/subscribe`,
+    GetNewsletterList: `${API_URL}/api/newsletter/list`,
+    DeleteNewsletter: `${API_URL}/api/newsletter/delete`,
+    UnsubscribeNewsletter: `${API_URL}/api/newsletter/unsubscribe`,
 
-    // Product API
-    AddProductList: `${API_URL}/api/product/add`,
-    GetAllProductList: `${API_URL}/api/product/getAllproductList`,
-    GetAllProductPhoto: `${API_URL}/api/product/getAllPhoto`,
-    GetUpdateProduct: `${API_URL}/api/product/update`,
-    GetUploadProductImage: `${API_URL}/api/product/upload-img`,
-    GetDeleteProduct: `${API_URL}/api/product/delete`,
-    GetProductById: `${API_URL}/api/product/getProductById`,
-    GetProductPhotoDeleteById: `${API_URL}/api/product/aws/delete/photo`,
+    // Car Enquiry endpoints
+    AddCarEnquiry: `${API_URL}/api/car-enquiry/create`,
+    GetCarEnquiryList: `${API_URL}/api/car-enquiry/list`,
+    GetCarEnquiryById: `${API_URL}/api/car-enquiry/getById`,
+    DeleteCarEnquiry: `${API_URL}/api/car-enquiry/delete`,
 
-    // Order Details
-    GetAllOrderDetails: `${API_URL}/api/order/list`,
-    GetOrderStatusUpdate: `${API_URL}/api/order/status/update`,
-
-    // Customer Details
-    GetAllCustomerDetails: `${API_URL}/api/customer/list`,
-    GetCustomerDeleteById: `${API_URL}/api/customer/delete`,
-
-    // Payment List
-    GetAllPaymentList: `${API_URL}/api/payment/getAllPayment`,
+    // Contact Us endpoints
+    AddContact: `${API_URL}/api/contact-us/subscribe`,
+    GetContactList: `${API_URL}/api/contact-us/list`,
+    GetContactById: `${API_URL}/api/contact-us/getById`,
+    DeleteContact: `${API_URL}/api/contact-us/delete`,
 };
 
 export { API_URL, Apis };

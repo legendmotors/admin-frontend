@@ -430,7 +430,7 @@ const Header = () => {
                                 offset={[0, 8]}
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
                                 btnClassName="relative group block"
-                                button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src="/assets/images/user-profile.jpeg" alt="userProfile" />}
+                                button={<img className="h-9 w-9 rounded-full object-cover saturate-50 group-hover:saturate-100" src="/assets/images/profile-placeholder.png" alt="userProfile" />}
                             >
                                 <ul className="w-[230px] !py-0 font-semibold text-dark dark:text-white-dark dark:text-white-light/90">
                                     {/* <li>

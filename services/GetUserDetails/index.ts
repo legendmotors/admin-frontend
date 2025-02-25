@@ -107,7 +107,7 @@ const restoreUser = async (id: number) => {
     }
 };
 // ✅ Toggle User Status (Active <-> Inactive)
-const updateUserStatus = async (id: number, status: 'active' | 'inactive') => {
+const updateUserStatus = async (id: number, status: string) => {
     try {
         const response = await api.put(Apis.UpdateUserStatus, { id, status });
 
@@ -224,7 +224,7 @@ const getRoleById = async (id: number) => {
             throw new Error(response.data.message || 'Failed to fetch role.');
         }
 
-        return response.data.data; // Return role data
+        return response.data; // Return role data
     } catch (error: any) {
         console.error('Error fetching role by ID:', error);
         throw new Error(error?.response?.data?.message || 'An unexpected error occurred.');
@@ -345,24 +345,33 @@ const deletePermission = async (id: number) => {
     }
 };
 
-// ✅ Assign Permissions to Role
-const assignPermissionsToRole = async (roleId: number, permissions: string[]) => {
+// Adjust the signature to accept an object instead of two separate parameters
+const assignPermissionsToRole = async (
+    payload: { roleId: number; permissions: number[] }
+  ) => {
     try {
-        const response = await api.post(Apis.AssignPermissionsToRole, { roleId, permissions });
-
-        if (!response || response.data.success === false) {
-            showTopCenterNotification('Failed to assign permissions to role.');
-            return null;
-        }
-
-        showTopCenterNotification('Permissions assigned successfully.');
-        return response.data;
-    } catch (error) {
-        console.error('Error assigning permissions to role:', error);
-        showTopCenterNotification('An error occurred while assigning permissions.');
+      // Destructure the payload
+      const { roleId, permissions } = payload;
+  
+      const response = await api.post(Apis.AssignPermissionsToRole, {
+        roleId,
+        permissions,
+      });
+  
+      if (!response || response.data.success === false) {
+        showTopCenterNotification('Failed to assign permissions to role.');
         return null;
+      }
+  
+      showTopCenterNotification('Permissions assigned successfully.');
+      return response.data;
+    } catch (error) {
+      console.error('Error assigning permissions to role:', error);
+      showTopCenterNotification('An error occurred while assigning permissions.');
+      return null;
     }
-};
+  };
+  
 
 // ✅ Get Permissions for a Role
 const getPermissionsForRole = async (roleId: number) => {

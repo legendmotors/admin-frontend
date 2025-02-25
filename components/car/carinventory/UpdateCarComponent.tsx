@@ -146,7 +146,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                     type: image.type,
                     order: image.order,
                     id: image.id, // Include ID if needed
-                    thumbnailPath: image.FileSystem?.thumbnailPath || image.FileSystem?.path, // Add thumbnail or path
+                    thumbnailPath: image.FileSystem?.thumbnailPath || image.FileSystem?.path, // Add thumbnailPath or path
                 })) || [];
 
 

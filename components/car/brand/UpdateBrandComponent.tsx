@@ -13,32 +13,33 @@ import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { getTranslation } from '@/i18n';
 import SectionHeader from '@/components/utils/SectionHeader';
-import { useDispatch } from 'react-redux';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setSelectedFiles } from '@/store/fileSelectionSlice';
 import ConfirmationModal from '@/components/modal/MediaModal';
+
 // Connect to the backend socket server
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`); // Make sure it matches your WebSocket server's URL
+const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
 const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
-
     const { t, i18n } = getTranslation();
     const dispatch = useDispatch();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [progress, setProgress] = useState(0);
     const [statusMessage, setStatusMessage] = useState('');
     const [initialValues, setInitialValues] = useState<any>(null);
-    const [logoPreview, setLogoPreview] = useState<string | null>(null); // State for image preview
-    const [logo, setLogo] = useState<File | null>(null); // State for file
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [status, setStatus] = useState<string>('draft');
     const formikRef = useRef<any>(null);
     const [isChanged, setIsChanged] = useState(false);
     const [featured, setFeatured] = useState(false);
+
     // Get selected files from Redux
+    // Our Redux store now expects an array of file objects;
+    // if the API returns a logo as a string, we wrap it in an array.
     const selectedFiles = useSelector((state: any) => state.fileSelection.selectedFileIds);
     console.log(selectedFiles, "selectedFiles");
 
-    // Update logo preview when a new file is selected
+    // Update logo preview when selectedFiles changes
     useEffect(() => {
         if (selectedFiles.length > 0) {
             // ✅ Get the first selected file and set preview
@@ -54,95 +55,65 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
         }
     }, [selectedFiles]);
 
-
-
-
     const handleConfirmSelection = () => {
         setIsModalOpen(false);
     };
 
     useEffect(() => {
         const fetchBrand = async () => {
-            try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/brand/getById?id=${brandId}&lang=${i18n.language}`);
+            const response = await axios.get(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/brand/getById?id=${brandId}&lang=${i18n.language}`
+            );
+            console.log(response, "my response");
 
-                console.log(response, "my resposne");
-
-                if (response.data.success) {
-                    const brandData = response.data.data;
-                    setStatus(brandData.status || 'draft');
-                    setFeatured(brandData.featured || false);
-                    setInitialValues({
-                        name: brandData.name,
-                        description: brandData.description,
-                        slug: brandData.slug,
-                        metaTitle: brandData.metaTitle,
-                        metaDescription: brandData.metaDescription,
-                        metaKeywords: brandData.metaKeywords,
-                        logo: brandData.logo || [],
-                        popularityScore: brandData.popularityScore,
-                        viewCount: brandData.viewCount,
-                        carCount: brandData.carCount,
-                    });
-                    if (brandData.logo && brandData.logo.length > 0) {
-                        dispatch(setSelectedFiles(brandData.logo));
-
-                        // ✅ Preload first logo image in preview
-                        // const firstLogo = brandData.logo[0];
-                        // if (firstLogo) {
-                        //     setLogoPreview(
-                        //         firstLogo.thumbnail
-                        //             ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${firstLogo.thumbnail}`
-                        //             : `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${firstLogo.original}`
-                        //     );
-                        // }
-                    }
-                }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to fetch brand data',
+            if (response) {
+                const brandData = response.data.data;
+                setStatus(brandData.status || 'draft');
+                setFeatured(brandData.featured || false);
+                setInitialValues({
+                    name: brandData.name,
+                    description: brandData.description,
+                    slug: brandData.slug,
+                    // Expect logo as a single UUID string now
+                    logo: brandData.logo || '',
+                    popularityScore: brandData.popularityScore,
+                    viewCount: brandData.viewCount,
+                    carCount: brandData.carCount,
                 });
+                // Update Redux store with uploaded image
+                dispatch(setSelectedFiles([brandData.logo]));
             }
         };
 
         fetchBrand();
-    }, [brandId, i18n.language]);
+    }, [brandId, i18n.language, dispatch]);
 
     const renderProgressHtml = (progress: number, message: string) => `
     <div class="mb-5 space-y-5">
-        <div class="w-full h-4 bg-gray-200 rounded-full">
-            <div class="bg-blue-500 h-4 rounded-full text-center text-white text-xs" style="width: ${progress}%;">${progress}%</div>
-        </div>
-        <p class="text-center">${message}</p>
+      <div class="w-full h-4 bg-gray-200 rounded-full">
+        <div class="bg-blue-500 h-4 rounded-full text-center text-white text-xs" style="width: ${progress}%;">${progress}%</div>
+      </div>
+      <p class="text-center">${message}</p>
     </div>
-`;
+  `;
 
     useEffect(() => {
-        // ✅ Listen for real-time WebSocket progress updates
         const progressHandler = (data: { progress: number; message: string; status: string }) => {
             console.log("Progress Data:", data);
-
             if (data.progress) setProgress(data.progress);
             if (data.message) setStatusMessage(data.message);
-
-            // ✅ Dynamically update SweetAlert UI
             Swal.update({
                 html: renderProgressHtml(data.progress, data.message)
             });
-
-            // ✅ Stop listening when progress reaches 100 (brand creation completed)
             if (data.progress === 100 && data.status === 'completed') {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Brand Created Successfully!',
-                    text: 'The brand has been added successfully.',
+                    title: 'Brand Updated Successfully!',
+                    text: 'The brand has been updated successfully.',
                 }).then(() => {
                     window.location.href = '/brand/list';
                 });
-
-                socket.off('progress', progressHandler); // 🛑 Stop listening for updates
+                socket.off('progress', progressHandler);
                 setTimeout(() => {
                     setProgress(0);
                     setStatusMessage('');
@@ -153,20 +124,23 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
         socket.on('progress', progressHandler);
 
         return () => {
-            socket.off('progress', progressHandler); // 🛑 Cleanup listener on unmount
+            socket.off('progress', progressHandler);
         };
     }, []);
+
     const submitForm4 = Yup.object().shape({
         name: Yup.string().required('Please fill the name').min(1, 'Name must be at least 1 characters long'),
     });
 
     const handleRemoveImage = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setLogo(null); // Reset the logo file
-        setLogoPreview(null); // Reset the preview
+        setLogoPreview(null);
         setIsChanged(true);
+        // Clear the Redux store for selected files
+        dispatch(setSelectedFiles([]));
     };
 
+    // Update form values interface: logo is now a string
     interface BrandFormValues {
         name: string;
         description: string;
@@ -174,9 +148,14 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
         metaTitle: string;
         metaDescription: string;
         metaKeywords: string;
-        logo: any[];
+        logo: string;
     }
-    const handleSubmit = async (values: BrandFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
+
+    const handleSubmit = async (
+        values: BrandFormValues,
+        { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
+    ) => {
+        // Prepare payload – send logo as a single UUID string
         const payload = {
             id: brandId,
             name: values.name,
@@ -185,34 +164,34 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
             metaTitle: values.metaTitle,
             metaDescription: values.metaDescription,
             metaKeywords: values.metaKeywords,
-            logo: selectedFiles.map((file: any) => file.id),  // ✅ Send selectedFiles array
+            logo: selectedFiles.length > 0 ? selectedFiles[0].id : null,
         };
 
-
         try {
-            // ✅ Show SweetAlert with dynamic UI updates
             Swal.fire({
-                title: 'Creating Brand...',
+                title: 'Updating Brand...',
                 html: renderProgressHtml(0, "Initializing..."),
                 showConfirmButton: false,
                 allowOutsideClick: false,
                 allowEscapeKey: false,
             });
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/brand/update?lang=${i18n.language}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/brand/update?lang=${i18n.language}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                }
+            );
 
             const data = await response.json();
 
             if (data.success) {
-                // ✅ Immediately show success message when the backend confirms completion
                 Swal.fire({
                     icon: 'success',
-                    title: 'Brand Created Successfully!',
-                    text: 'The brand has been added successfully.',
+                    title: 'Brand Updated Successfully!',
+                    text: 'The brand has been updated successfully.',
                 }).then(() => {
                     window.location.href = '/brand/list';
                 });
@@ -251,7 +230,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
             });
 
             if (response.data.success) {
-                setStatus(newStatus); // Update status in the component
+                setStatus(newStatus);
                 Swal.fire({
                     icon: 'success',
                     title: 'Status Updated',
@@ -273,26 +252,18 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
         }
     };
 
-    // Detect changes in the form values
     useEffect(() => {
         if (initialValues && formikRef.current) {
-            // Access the current values from Formik
             const formValues = formikRef.current.values;
-
-            // Check if any field has changed by comparing form values to initial values
             const isFormChanged = JSON.stringify(initialValues) !== JSON.stringify(formValues);
-
-            // Update the `isChanged` state
             setIsChanged(isFormChanged);
         }
-    }, [initialValues, formikRef.current?.values]); // Trigger this effect when initialValues or formik values change
-
+    }, [initialValues, formikRef.current?.values]);
 
     const { getRootProps, getInputProps } = useDropzone({
         accept: { 'image/*': [] },
         onDrop: async (acceptedFiles) => {
             const file = acceptedFiles[0];
-
             if (file) {
                 try {
                     const formData = new FormData();
@@ -311,7 +282,6 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                         method: 'POST',
                         body: formData,
                     });
-
                     const data = await response.json();
 
                     if (response.ok) {
@@ -320,10 +290,10 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                             title: 'Upload Successful!',
                             text: 'The image has been uploaded to the file manager.',
                         });
-
-                        setLogoPreview(data.thumbnailPath || data.path); // ✅ Update preview
+                        setLogoPreview(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/${data.thumbnailPath || data.path}`);
                         setIsChanged(true);
-                        dispatch(setSelectedFiles([data])); // ✅ Update Redux state with new image
+                        // Store the uploaded file as an object with id
+                        dispatch(setSelectedFiles([data]));
                     } else {
                         throw new Error(data.message || 'Failed to upload image.');
                     }
@@ -338,8 +308,6 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
         },
     });
 
-
-
     if (!initialValues) {
         return <div>Loading...</div>;
     }
@@ -352,8 +320,8 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                 onConfirm={handleConfirmSelection}
                 title="Select Brand Image"
                 description="Choose an image for the brand."
-                allowFolders={false} // 🔹 Set based on parent component logic
-                selectionMode="single" // 🔹 Set based on parent component logic
+                allowFolders={false}
+                selectionMode="single"
             />
 
             <div className="flex flex-col gap-2.5 xl:flex-row">
@@ -380,12 +348,11 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                 className="form-input"
                                                 onChange={(e: any) => {
                                                     handleChange(e);
-                                                    setIsChanged(true); // Track changes to this field
+                                                    setIsChanged(true);
                                                 }}
                                             />
                                             <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
                                         </div>
-
                                         <div className={submitCount ? (errors.slug ? 'has-error' : 'has-success') : ''}>
                                             <label htmlFor="slug">Slug</label>
                                             <Field
@@ -396,7 +363,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                 className="form-input"
                                                 onChange={(e: any) => {
                                                     handleChange(e);
-                                                    setIsChanged(true); // Track changes to this field
+                                                    setIsChanged(true);
                                                 }}
                                             />
                                             <ErrorMessage name="slug" component="div" className="mt-1 text-danger" />
@@ -410,7 +377,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                 initialValue={values.description}
                                                 onChange={(newContent) => {
                                                     setFieldValue('description', newContent);
-                                                    setIsChanged(true); // Track changes to this field
+                                                    setIsChanged(true);
                                                 }}
                                             />
                                             {submitCount ? (
@@ -420,17 +387,14 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                     <div className="mt-1 text-success">Looks Good!</div>
                                                 )
                                             ) : null}
-
-
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                        {/* File upload with react-dropzone */}
                                         <div
                                             {...getRootProps()}
                                             className="dropzone border-dashed border-2 border-gray-300 rounded-lg p-5 cursor-pointer text-center"
-                                            onClick={() => setIsModalOpen(true)} // ✅ Clicking opens the modal instead of file input
+                                            onClick={() => setIsModalOpen(true)}
                                         >
                                             <input {...getInputProps()} name="logo" id="logo" />
                                             {logoPreview ? (
@@ -439,11 +403,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                     <div className="flex justify-center">
                                                         <img src={logoPreview} alt="Logo Preview" className="max-w-full max-h-48" />
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleRemoveImage}
-                                                        className="mt-2 text-red-500 underline"
-                                                    >
+                                                    <button type="button" onClick={handleRemoveImage} className="mt-2 text-red-500 underline">
                                                         Remove Image
                                                     </button>
                                                 </div>
@@ -453,7 +413,6 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Featured Toggle Switch */}
                                         <div>
                                             <label htmlFor="featured">Featured</label>
                                             <label className="w-12 h-6 relative">
@@ -461,62 +420,13 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                     type="checkbox"
                                                     className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
                                                     checked={featured}
-                                                    onChange={() => setFeatured((prev) => !prev)} // ✅ Update state locally
+                                                    onChange={() => setFeatured((prev) => !prev)}
                                                 />
                                                 <span className="outline_checkbox bg-icon border-2 border-gray-300 dark:border-white-dark block h-full rounded-full before:absolute before:left-1 before:bg-gray-300 dark:before:bg-white-dark before:bottom-1 before:w-4 before:h-4 before:rounded-full before:bg-[url('/assets/images/close.svg')] before:bg-no-repeat before:bg-center peer-checked:before:left-7 peer-checked:before:bg-[url('/assets/images/checked.svg')] peer-checked:border-primary peer-checked:before:bg-primary before:transition-all before:duration-300"></span>
                                             </label>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                                        <div className={submitCount ? (errors.metaTitle ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="metaTitle">Meta Title</label>
-                                            <Field
-                                                name="metaTitle"
-                                                type="text"
-                                                id="metaTitle"
-                                                placeholder="Enter Meta Title"
-                                                className="form-input"
-                                                onChange={(e: any) => {
-                                                    handleChange(e);
-                                                    setIsChanged(true); // Track changes to this field
-                                                }}
-                                            />
-                                            <ErrorMessage name="metaTitle" component="div" className="mt-1 text-danger" />
-                                        </div>
-
-                                        <div className={submitCount ? (errors.metaDescription ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="metaDescription">Meta Description</label>
-                                            <Field
-                                                name="metaDescription"
-                                                type="text"
-                                                id="metaDescription"
-                                                placeholder="Enter Meta Description"
-                                                className="form-input"
-                                                onChange={(e: any) => {
-                                                    handleChange(e);
-                                                    setIsChanged(true); // Track changes to this field
-                                                }}
-                                            />
-                                            <ErrorMessage name="metaDescription" component="div" className="mt-1 text-danger" />
-                                        </div>
-
-                                        <div className={submitCount ? (errors.metaKeywords ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="metaKeywords">Meta Keywords</label>
-                                            <Field
-                                                name="metaKeywords"
-                                                type="text"
-                                                id="metaKeywords"
-                                                placeholder="Enter Meta Keywords"
-                                                className="form-input"
-                                                onChange={(e: any) => {
-                                                    handleChange(e);
-                                                    setIsChanged(true); // Track changes to this field
-                                                }}
-                                            />
-                                            <ErrorMessage name="metaKeywords" component="div" className="mt-1 text-danger" />
-                                        </div>
-                                    </div>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                                         <div>
                                             <label htmlFor="popularityScore">Popularity Score</label>
@@ -554,24 +464,37 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                         </Formik>
                     </div>
                 </div>
+
                 <div className="mt-6 w-full xl:mt-0 xl:w-96">
                     <div className="panel">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-1">
-                            <button type="button" className="btn btn-success w-full gap-2" onClick={() => formikRef.current.submitForm()} disabled={!isChanged}>
+                            <button
+                                type="button"
+                                className="btn btn-success w-full gap-2"
+                                onClick={() => formikRef.current.submitForm()}
+                                disabled={!isChanged}
+                            >
                                 <IconSave className="shrink-0 ltr:mr-2 rtl:ml-2" />
                                 Save
                             </button>
-
-                            {/* Publish/Unpublish Buttons */}
                             {status === 'draft' && (
-                                <button type="button" className="btn btn-secondary w-full gap-2" onClick={() => handleStatusChange('published')} disabled={isChanged}>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary w-full gap-2"
+                                    onClick={() => handleStatusChange('published')}
+                                    disabled={isChanged}
+                                >
                                     <IconCircleCheck className="shrink-0 ltr:mr-2 rtl:ml-2" />
                                     Publish
                                 </button>
                             )}
-
                             {status === 'published' && (
-                                <button type="button" className="btn btn-warning w-full gap-2" onClick={() => handleStatusChange('draft')} disabled={isChanged}>
+                                <button
+                                    type="button"
+                                    className="btn btn-warning w-full gap-2"
+                                    onClick={() => handleStatusChange('draft')}
+                                    disabled={isChanged}
+                                >
                                     <IconCircleCheck className="shrink-0 ltr:mr-2 rtl:ml-2" />
                                     Unpublish
                                 </button>
@@ -579,7 +502,8 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                         </div>
                     </div>
                 </div>
-            </div>   </>
+            </div>
+        </>
     );
 };
 

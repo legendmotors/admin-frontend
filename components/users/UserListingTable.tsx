@@ -1,259 +1,185 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { DataTable, DataTableSortStatus } from 'mantine-datatable';
-import Select, { SingleValue, StylesConfig } from 'react-select';
-import Swal from 'sweetalert2';
+import React, { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import IconEdit from '@/components/icon/icon-edit';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
-import IconPlus from '@/components/icon/icon-plus';
+import IconXCircle from '@/components/icon/icon-x-circle';
+import IconCircleCheck from '@/components/icon/icon-circle-check';
+import IconRefresh from '@/components/icon/icon-refresh';
+import ReusableTable from '@/components/common/data-table/ReusableTable';
 import GetUserDetails from '@/services/GetUserDetails';
-import IconRefresh from '../icon/icon-refresh';
-import IconXCircle from '../icon/icon-x-circle';
-import IconCircleCheck from '../icon/icon-circle-check';
+import Swal from 'sweetalert2';
+import IconHelpCircle from '../icon/icon-help-circle';
 
-// Status options for the dropdown
-const statusOptions = [
-    { value: '', label: 'All' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'deleted', label: 'Deleted' },
-];
-
-
-const customStyles: StylesConfig<any, boolean> = {
-    control: (provided) => ({
-        ...provided,
-        minWidth: '150px',  // Adjust width as needed
-    }),
-    menu: (provided) => ({
-        ...provided,
-        zIndex: 9999,  // Increase z-index to ensure dropdown is on top
-    }),
-};
-
-
-// Define user type
 type User = {
     id: number;
     firstName: string;
     lastName: string;
     email: string;
     phone: string;
-    role: string;
+    role: { id: number; name: string } | null;
     verify: boolean;
     status: 'active' | 'inactive' | 'deleted';
     createdAt: string;
 };
 
 const UserListingTable: React.FC = () => {
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState<number>(1);
-    const PAGE_SIZES = [10, 20, 30, 50, 100];
-    const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
-    const [paginationInfo, setPaginationInfo] = useState<{ totalItems: number, totalPages: number }>({ totalItems: 0, totalPages: 0 });
-    const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string | null>(null);
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'firstName',
-        direction: 'asc',
-    });
-
+    // Optionally log fetched users for debugging
     useEffect(() => {
-        fetchUsers();
-    }, [page, pageSize, search, sortStatus, statusFilter]);
+        (async () => {
+            const data = await GetUserDetails.listUser({});
+            console.log('Fetched users:', data);
+        })();
+    }, []);
 
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
-            const params: Record<string, any> = {
-                page,
-                limit: pageSize,
-                sortBy: sortStatus.columnAccessor,
-                order: sortStatus.direction.toUpperCase(),
-            };
+    const userColumns = [
+        { accessor: 'firstName', title: 'First Name', sortable: true },
+        { accessor: 'lastName', title: 'Last Name', sortable: true },
+        { accessor: 'email', title: 'Email', sortable: true },
+        { accessor: 'phone', title: 'Phone', sortable: true },
+        {
+            accessor: 'role',
+            title: 'Role',
+            sortable: true,
+            render: ({ role }: { role: { id: number; name: string } | null }) =>
+                role ? role.name : 'N/A',
+        },
+        {
+            accessor: 'status',
+            title: 'Status',
+            sortable: true,
+            render: ({ status }: { status: string }) => {
+                const statusColors: Record<string, string> = {
+                    active: 'badge bg-success',
+                    inactive: 'badge bg-warning',
+                    deleted: 'badge bg-danger',
+                };
+                return <span className={statusColors[status]}>{status}</span>;
+            },
+        },
+    ];
 
-            if (search.trim()) params.search = search.trim();
-            if (statusFilter) params.status = statusFilter;
+    const actions = [
+        {
+            label: 'Edit',
+            href: '/users/edit',
+            className: 'btn btn-sm btn-info',
+            icon: <IconEdit className="h-4.5 w-4.5" />,
+            show: true,
+        },
+        {
+            label: (row: User) => (row.status === 'active' ? 'Set Inactive' : 'Set Active'),      // Since the row is just a user id, we display a placeholder icon.
+            icon: "",
 
-            const response = await GetUserDetails.listUser(params);
-            setUsers(response.data);
-            setPaginationInfo(response.pagination);
-        } catch (error) {
-            console.error('Error fetching users:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+            onClick: async (userId: number) => {
+                console.log('Status action clicked for user id:', userId);
 
-    useEffect(() => {
-        setPage(1); // Reset to page 1 when pageSize changes
-    }, [pageSize]);
-
-    const handlePageChange = (newPage: number) => {
-        setPage(newPage);
-    };
-
-    const toggleUserStatus = async (id: number, currentStatus: 'active' | 'inactive') => {
-        const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-        try {
-            await GetUserDetails.updateUserStatus(id, newStatus);
-            setUsers(users.map(user => (user.id === id ? { ...user, status: newStatus } : user)));
-
-            Swal.fire('Success', `User status updated to ${newStatus}`, 'success');
-        } catch (error) {
-            console.error('Error updating user status:', error);
-        }
-    };
-
-
-    const deleteUser = async (id: number) => {
-        try {
-            await GetUserDetails.deleteUser(id);
-            setUsers(users.map(user => (user.id === id ? { ...user, status: 'deleted' } : user)));
-
-            Swal.fire('Deleted!', 'User has been deleted.', 'success');
-        } catch (error) {
-            console.error('Error deleting user:', error);
-        }
-    };
-
-    const restoreUser = async (id: number) => {
-        try {
-            await GetUserDetails.restoreUser(id);
-            setUsers(users.map(user => (user.id === id ? { ...user, status: 'active' } : user)));
-
-            Swal.fire('Restored!', 'User has been restored.', 'success');
-        } catch (error) {
-            console.error('Error restoring user:', error);
-        }
-    };
-
-    const bulkDeleteUsers = async () => {
-        if (selectedUsers.length === 0) {
-            Swal.fire('No Users Selected', 'Please select at least one user.', 'info');
-            return;
-        }
-
-        Swal.fire({
-            icon: 'warning',
-            title: 'Are you sure?',
-            text: 'This action will soft delete the selected users.',
-            showCancelButton: true,
-            confirmButtonText: 'Delete',
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const ids = selectedUsers.map((user) => user.id);
-                    await GetUserDetails.bulkDeleteUser(ids);
-                    setUsers(users.map(user => (ids.includes(user.id) ? { ...user, status: 'deleted' } : user)));
-
-                    Swal.fire('Deleted!', 'Users have been deleted.', 'success');
-                    setSelectedUsers([]);
-                } catch (error) {
-                    console.error('Error deleting users:', error);
+                // Fetch the full user details to determine the current status
+                const user = await GetUserDetails.getUserById(userId);
+                console.log('getUserById response:', user);
+                if (!user) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'User not found',
+                        text: 'Unable to fetch user details.',
+                    });
+                    return;
                 }
-            }
-        });
-    };
+                console.log('Current user status:', user.status);
+
+                if (user.status === 'deleted') {
+                    const restoreResponse = await GetUserDetails.restoreUser(userId);
+                    console.log('restoreUser response:', restoreResponse);
+                    if (restoreResponse.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'User Restored',
+                            text: 'User restored successfully.',
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Restore Failed',
+                            text: 'Failed to restore user.',
+                        });
+                    }
+                } else {
+                    // Toggle status: if active, set to inactive; if inactive, set to active.
+                    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+                    console.log('Toggling status to:', newStatus);
+                    const updateResponse = await GetUserDetails.updateUserStatus(userId, newStatus);
+                    console.log('updateUserStatus response:', updateResponse);
+                    if (updateResponse.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Status Updated',
+                            text: `User status updated to ${newStatus}.`,
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Update Failed',
+                            text: 'Failed to update status.',
+                        });
+                    }
+                }
+
+            },
+            show: true,
+        },
+        {
+            label: 'Delete',
+            icon: <IconTrashLines className="h-4.5 w-4.5" />,
+            onClick: async (userId: number) => {
+                console.log('Delete action clicked for user id:', userId);
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    showCancelButton: true,
+                    confirmButtonText: 'Delete',
+                });
+                if (result.isConfirmed) {
+                    const response = await GetUserDetails.deleteUser(userId);
+                    console.log('deleteUser response:', response);
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted',
+                            text: 'User deleted successfully.',
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Deletion Failed',
+                            text: 'Failed to delete user.',
+                        });
+                    }
+
+                }
+            },
+            show: true,
+        },
+    ];
 
     return (
-        <div className="panel border-white-light px-0">
-            <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                <div className="flex items-center gap-2">
-                    {selectedUsers.length > 0 && (
-                        <button className="btn btn-danger" onClick={() => {/* Bulk Delete Logic */ }}>
-                            <IconTrashLines /> Bulk Delete
-                        </button>
-                    )}
-                </div>
-                <div className="ltr:ml-auto flex items-center gap-2">
-                    <input
-                        type="text"
-                        className="form-input w-auto"
-                        placeholder="Search..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                    <Select
-                        options={statusOptions}
-                        onChange={(e: SingleValue<{ value: string; label: string }>) => setStatusFilter(e?.value || null)}
-                        styles={customStyles}
-                    />
-                </div>
-            </div>
-
-            <div className="datatables pagination-padding">
-                {loading ? (
-                    <div className="text-center p-4">Loading users...</div>
-                ) : (
-                    <DataTable
-                        records={users}
-                        columns={[
-                            { accessor: 'id', title: 'ID', sortable: true },
-                            { accessor: 'firstName', title: 'First Name', sortable: true },
-                            { accessor: 'lastName', title: 'Last Name', sortable: true },
-                            { accessor: 'email', title: 'Email', sortable: true },
-                            { accessor: 'phone', title: 'Phone', sortable: false },
-                            { accessor: 'role', title: 'Role', sortable: true },
-                            {
-                                accessor: 'status',
-                                title: 'Status',
-                                render: ({ status }) => {
-                                    const statusColors = {
-                                        active: 'bg-success',
-                                        inactive: 'bg-warning',
-                                        deleted: 'bg-danger',
-                                    };
-                                    return <span className={`badge ${statusColors[status]}`}>{status}</span>;
-                                },
-                            },
-                            {
-                                accessor: 'action',
-                                title: 'Actions',
-                                render: ({ id, status }) => (
-                                    <div className="mx-auto flex w-max items-center gap-4">
-                                        <Link href={`/users/edit/${id}`} className="flex hover:text-info">
-                                            <IconEdit />
-                                        </Link>
-                                        {status === 'deleted' ? (
-                                            <button onClick={() => restoreUser(id)} className="flex hover:text-primary">
-                                                <IconRefresh />
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => toggleUserStatus(id, status)}
-                                                className={`${status === 'active' ? 'hover:text-warning' : 'hover:text-success'}`}
-                                            >
-                                                {status === 'active' ? <IconXCircle /> : <IconCircleCheck />}
-                                            </button>
-                                        )}
-
-                                        {status !== 'deleted' && (
-                                            <button onClick={() => deleteUser(id)} className="btn btn-danger">
-                                                <IconTrashLines />
-                                            </button>
-                                        )}
-                                    </div>
-                                ),
-                            },
-                        ]}
-                        selectedRecords={selectedUsers}
-                        onSelectedRecordsChange={setSelectedUsers}
-                        totalRecords={paginationInfo.totalItems} // ✅ Add total records count
-                        recordsPerPage={pageSize} // ✅ Set page size
-                        page={page} // ✅ Track current page
-                        onPageChange={handlePageChange} // ✅ Handle page change
-                        recordsPerPageOptions={PAGE_SIZES} // ✅ Allow user to select page size
-                        onRecordsPerPageChange={setPageSize} // ✅ Handle page size change
-                        paginationText={({ from, to, totalRecords }) =>
-                            `Showing ${from} to ${to} of ${totalRecords} entries`
-                        }
-                    />
-                )}
-            </div>
+        <div className="container mx-auto">
+            <h1 className="text-2xl font-bold mb-4">User List</h1>
+            <ReusableTable
+                modelName="User"
+                columns={userColumns}
+                statusOptions={[
+                    { value: '', label: 'All' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'inactive', label: 'Inactive' },
+                    { value: 'deleted', label: 'Deleted' },
+                ]}
+                listService={GetUserDetails.listUser}
+                deleteService={GetUserDetails.deleteUser}
+                bulkDeleteService={GetUserDetails.bulkDeleteUser}
+                actions={actions}
+                addUrl="/users/add"
+            />
         </div>
     );
 };

@@ -27,8 +27,6 @@ const LoginForm: React.FC = () => {
         try {
             const data = { email, password };
             const user = await GetUserLogin.getUserLogin(data);
-
-            console.log(user?.token,"user?.token");
             
             if (user?.token) {
                 // ✅ Store token in cookies using GetUserLogin.authenticate

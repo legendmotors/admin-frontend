@@ -186,7 +186,10 @@ const authenticate = (user: { token: string }, next: () => void) => {
 const logout = (next: () => void) => {
     if (typeof window !== 'undefined') {
         eraseCookie('token');
-        eraseCookie('role');
+        eraseCookie('roleId');
+        eraseCookie('rolePermissions');
+        eraseCookie('permissions');
+        eraseCookie('userId');
         eraseCookie('XSRF-token');
         window.location.reload();
     }

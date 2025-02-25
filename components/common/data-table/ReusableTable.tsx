@@ -3,16 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { DataTable, DataTableSortStatus } from 'mantine-datatable';
 import { sortBy } from 'lodash';
-import Select from 'react-select';
-import { StylesConfig } from 'react-select';
-import Swal from 'sweetalert2';
-import axios from 'axios';
-import IconTrashLines from '@/components/icon/icon-trash-lines';
+import Select, { StylesConfig } from 'react-select';
 import Link from 'next/link';
+import { format } from 'date-fns';
+
+import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconPlus from '@/components/icon/icon-plus';
 import ImportComponent from '@/components/utils/ImportComponent';
-import { format } from 'date-fns';
 import UpdateStatusService from '@/services/UpdateStatusService';
+import { getTranslation } from '@/i18n';
+import Swal from 'sweetalert2';
 
 type ImportComponentConfig = {
   endpoint: string;
@@ -24,11 +24,34 @@ type ImportComponentConfig = {
   onComplete: () => void;
 };
 
-type TableProps<T> = {
-  listService: (params: Record<string, any>) => Promise<{ data: T[]; pagination: { totalItems: number; totalPages: number } }>;
-  deleteService: (id: number) => Promise<boolean>; // Change from void to boolean
-  bulkDeleteService: (ids: number[]) => Promise<boolean>; columns: any[];
-  actions?: { label: string; show?: boolean; href?: string; onClick?: (id: number) => void; className?: string; icon?: React.ReactNode; }[];
+// 1) Constrain T so it MUST have `id: number`.
+type BaseRow = {
+  id: number;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: string;
+};
+
+// 2) Define the table props with that constraint.
+type TableProps<T extends BaseRow> = {
+  listService: (params: Record<string, any>) => Promise<{
+    data: T[];
+    pagination: { totalItems: number; totalPages: number };
+  }>;
+  /** If not provided, no single-item delete button is shown. */
+  deleteService?: (id: number) => Promise<boolean>;
+  /** If not provided, no bulk-delete button is shown. */
+  bulkDeleteService?: (ids: number[]) => Promise<boolean>;
+  columns: any[];
+  actions?: Array<{
+    label?: string | ((row: T) => string);
+    show?: boolean;
+    href?: string;
+    onClick?: (id: number) => void;
+    className?: string;
+    // icon can be a static node or a function taking (id: number)
+    icon?: React.ReactNode | ((id: number) => React.ReactNode);
+  }>;
   PAGE_SIZES?: number[];
   searchPlaceholder?: string;
   statusOptions?: { value: string; label: string }[];
@@ -38,7 +61,7 @@ type TableProps<T> = {
   addUrl?: string;
 };
 
-const ReusableTable = <T extends Record<string, any>>({
+const ReusableTable = <T extends BaseRow>({
   columns,
   actions = [],
   PAGE_SIZES = [10, 20, 30, 50, 100],
@@ -49,13 +72,17 @@ const ReusableTable = <T extends Record<string, any>>({
   deleteService,
   bulkDeleteService,
   importComponentConfig,
-  addUrl
+  addUrl,
 }: TableProps<T>) => {
+  const { t, i18n } = getTranslation();
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
-  const [paginationInfo, setPaginationInfo] = useState<{ totalItems: number; totalPages: number }>({
+  const [paginationInfo, setPaginationInfo] = useState<{
+    totalItems: number;
+    totalPages: number;
+  }>({
     totalItems: 0,
     totalPages: 0,
   });
@@ -68,6 +95,7 @@ const ReusableTable = <T extends Record<string, any>>({
   const [selectedRecords, setSelectedRecords] = useState<T[]>([]);
   const [updating, setUpdating] = useState<boolean>(false);
 
+  // Fetch data on mount or when dependencies change
   useEffect(() => {
     const fetchDataFromAPI = async () => {
       setLoading(true);
@@ -77,14 +105,14 @@ const ReusableTable = <T extends Record<string, any>>({
           limit: pageSize,
           sortBy: sortStatus.columnAccessor,
           order: sortStatus.direction.toUpperCase(),
+          lang: i18n.language,
         };
 
         if (search.trim()) params.search = search.trim();
         if (statusFilter) params.status = statusFilter;
 
         const response = await listService(params);
-
-        setItems(sortBy(response.data, 'name')); // Sort by name by default
+        setItems(sortBy(response.data, 'name')); // sort by 'name' if T has it
         setPaginationInfo(response.pagination);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -96,10 +124,11 @@ const ReusableTable = <T extends Record<string, any>>({
     };
 
     fetchDataFromAPI();
-  }, [page, pageSize, search, sortStatus, statusFilter]);
+  }, [page, pageSize, search, sortStatus, statusFilter, i18n.language]);
 
+  // Reset to page 1 when pageSize changes
   useEffect(() => {
-    setPage(1); // Reset to page 1 when pageSize changes
+    setPage(1);
   }, [pageSize]);
 
   const handleStatusChange = (
@@ -124,7 +153,7 @@ const ReusableTable = <T extends Record<string, any>>({
     try {
       setUpdating(true);
 
-      // Call the service for bulk updating status
+      // Call your service for bulk updating status
       const success = await UpdateStatusService.bulkUpdateStatus({
         model: modelName,
         ids,
@@ -132,16 +161,12 @@ const ReusableTable = <T extends Record<string, any>>({
       });
 
       if (success) {
-        // Update the items with the new status
         setItems((prevItems) =>
           prevItems.map((item) =>
             ids.includes(item.id) ? { ...item, status: newStatus } : item
           )
         );
-
-        // Clear the selected records
-        setSelectedRecords([]); // Clear selected records after the update
-
+        setSelectedRecords([]);
         Swal.fire({
           icon: 'success',
           title: 'Success',
@@ -169,8 +194,9 @@ const ReusableTable = <T extends Record<string, any>>({
     }
   };
 
-
+  // For single/bulk delete, only show if the relevant services are provided
   const showDeleteConfirmation = (id: number | null) => {
+    // If no single ID and no selected records, show message
     if (id === null && selectedRecords.length === 0) {
       Swal.fire({
         icon: 'info',
@@ -190,16 +216,20 @@ const ReusableTable = <T extends Record<string, any>>({
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          if (id !== null) {
+          if (id !== null && deleteService) {
             // Single delete
-            await deleteService(id);
-            setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-          } else {
+            const success = await deleteService(id);
+            if (success) {
+              setItems((prevItems) => prevItems.filter((item) => item.id !== id));
+            }
+          } else if (bulkDeleteService) {
             // Bulk delete
             const ids = selectedRecords.map((item) => item.id);
-            await bulkDeleteService(ids);
-            setItems((prevItems) => prevItems.filter((item) => !ids.includes(item.id)));
-            setSelectedRecords([]);
+            const success = await bulkDeleteService(ids);
+            if (success) {
+              setItems((prevItems) => prevItems.filter((item) => !ids.includes(item.id)));
+              setSelectedRecords([]);
+            }
           }
         } catch (error) {
           console.error('Error deleting item:', error);
@@ -208,25 +238,14 @@ const ReusableTable = <T extends Record<string, any>>({
     });
   };
 
-  
   const handleImportComplete = () => {
-    console.log("Import completed! Refreshing data...");
+    console.log('Import completed! Refreshing data...');
+    // If you need to refresh the table, do so here or re-trigger useEffect.
   };
 
-  const customStyles: StylesConfig<any, boolean> = {
-    control: (provided) => ({
-      ...provided,
-      minWidth: '150px',  // Adjust width as needed
-    }),
-    menu: (provided) => ({
-      ...provided,
-      zIndex: 9999,  // Increase z-index to ensure dropdown is on top
-    }),
-  };
-
-
+  // Single delete handler (only if deleteService is provided)
   const handleDelete = (id: number | null) => {
-
+    if (!deleteService || id === null) return;
     Swal.fire({
       icon: 'warning',
       title: 'Are you sure?',
@@ -236,12 +255,10 @@ const ReusableTable = <T extends Record<string, any>>({
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          if (id !== null) {
-            // Single delete
-            await deleteService(id);
+          const success = await deleteService(id);
+          if (success) {
             setItems((prevItems) => prevItems.filter((item) => item.id !== id));
           }
-
         } catch (error) {
           console.error('Error deleting item:', error);
         }
@@ -249,34 +266,66 @@ const ReusableTable = <T extends Record<string, any>>({
     });
   };
 
-
+  // Renders the "Actions" column for each row
   const renderActions = (id: number) => (
     <div className="flex gap-2">
       {actions
-        .filter((action) => action.show !== false) // Only render actions where `show` is not explicitly false
-        .map((action, index) =>
-          action.href ? (
-            <a key={index} href={`${action.href}/${id}`} className={action.className || 'btn btn-sm btn-primary'}>
-              {action.icon} {action.label}
-            </a>
-          ) : action.label === 'Delete' ? (
-            <button
-              key={index}
-              onClick={() => handleDelete(id)} // Delete logic remains in the ReusableTable
-              className={action.className || 'btn btn-sm btn-danger'}
-            >
-              {action.icon} {action.label}
-            </button>
-          ) : (
-            <button
-              key={index}
-              onClick={() => action.onClick && action.onClick(id)} // Other dynamic actions
-              className={action.className || 'btn btn-sm btn-primary'}
-            >
-              {action.label}
-            </button>
-          )
-        )}
+        .filter((action) => action.show !== false)
+        .map((action, index) => {
+          // 1) Handle icon
+          let iconElement: React.ReactNode;
+          if (typeof action.icon === 'function') {
+            iconElement = action.icon(id);
+          } else {
+            iconElement = action.icon;
+          }
+
+          // 2) Handle label
+          let labelElement: React.ReactNode;
+          if (typeof action.label === 'function') {
+            // If the function expects row data, you'd pass the row object. 
+            // If it only needs an ID, you could pass that. Adjust as needed.
+            labelElement = action.label({} as T);
+          } else {
+            labelElement = action.label;
+          }
+
+          // 3) Return link or button
+          if (action.href) {
+            return (
+              <a
+                key={index}
+                href={`${action.href}/${id}`}
+                className={action.className || 'btn btn-sm btn-primary'}
+              >
+                {iconElement} {labelElement}
+              </a>
+            );
+          } 
+          else if (labelElement === 'Delete' && deleteService) {
+            // Only show "Delete" if we have a deleteService
+            return (
+              <button
+                key={index}
+                onClick={() => handleDelete(id)}
+                className={action.className || 'btn btn-sm btn-danger'}
+              >
+                {iconElement} {labelElement}
+              </button>
+            );
+          } 
+          else {
+            return (
+              <button
+                key={index}
+                onClick={() => action.onClick?.(id)}
+                className={action.className || 'btn btn-sm btn-primary'}
+              >
+                {iconElement} {labelElement}
+              </button>
+            );
+          }
+        })}
     </div>
   );
 
@@ -285,10 +334,10 @@ const ReusableTable = <T extends Record<string, any>>({
       <div className="invoice-table">
         <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
           <div className="flex items-center gap-2">
-            {/* Bulk status update buttons */}
+            {/* Only show publish/unpublish if relevant (custom logic) */}
             {selectedRecords.length > 0 && (
               <>
-                {selectedRecords.every((brand) => brand.status === 'draft') && (
+                {selectedRecords.every((item) => item.status === 'draft') && (
                   <button
                     type="button"
                     className="btn btn-success gap-2"
@@ -297,7 +346,7 @@ const ReusableTable = <T extends Record<string, any>>({
                     Publish
                   </button>
                 )}
-                {selectedRecords.every((brand) => brand.status === 'published') && (
+                {selectedRecords.every((item) => item.status === 'published') && (
                   <button
                     type="button"
                     className="btn btn-warning gap-2"
@@ -306,8 +355,8 @@ const ReusableTable = <T extends Record<string, any>>({
                     Unpublish
                   </button>
                 )}
-                {selectedRecords.some((brand) => brand.status === 'draft') &&
-                  selectedRecords.some((brand) => brand.status === 'published') && (
+                {selectedRecords.some((item) => item.status === 'draft') &&
+                  selectedRecords.some((item) => item.status === 'published') && (
                     <>
                       <button
                         type="button"
@@ -328,15 +377,17 @@ const ReusableTable = <T extends Record<string, any>>({
               </>
             )}
 
-            {/* Bulk delete button */}
-            <button
-              type="button"
-              className="btn btn-danger gap-2"
-              onClick={() => showDeleteConfirmation(null)}
-            >
-              <IconTrashLines />
-              Delete
-            </button>
+            {/* Bulk delete button: only if bulkDeleteService is provided */}
+            {bulkDeleteService && (
+              <button
+                type="button"
+                className="btn btn-danger gap-2"
+                onClick={() => showDeleteConfirmation(null)}
+              >
+                <IconTrashLines />
+                Delete
+              </button>
+            )}
 
             {addUrl ? (
               <Link href={addUrl} className="btn btn-primary gap-2">
@@ -349,10 +400,10 @@ const ReusableTable = <T extends Record<string, any>>({
                 Add New
               </button>
             )}
-
-
           </div>
+
           <div className="ltr:ml-auto rtl:mr-auto flex items-center gap-2">
+            {/* Optional import component */}
             {importComponentConfig && (
               <ImportComponent
                 endpoint={importComponentConfig.endpoint}
@@ -363,24 +414,28 @@ const ReusableTable = <T extends Record<string, any>>({
                 onComplete={importComponentConfig.onComplete || handleImportComplete}
               />
             )}
+            {/* Search input */}
             <input
               type="text"
               className="form-input w-auto"
-              placeholder="Search..."
+              placeholder={searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Select
-              options={statusOptions}
-              value={(statusOptions || []).find((option) => option.value === (statusFilter || ''))}
-              onChange={handleStatusChange}
-              isSearchable={false}
-              placeholder="Select Status"
-              className="w-auto"
-              styles={customStyles} // Applying the styles
-            />
+            {/* Status filter */}
+            {statusOptions?.length ? (
+              <Select
+                options={statusOptions}
+                value={statusOptions.find(
+                  (option) => option.value === (statusFilter || '')
+                )}
+                onChange={handleStatusChange}
+                isSearchable={false}
+                placeholder="Select Status"
+                className="w-auto"
+              />
+            ) : null}
           </div>
-
         </div>
 
         <div className="datatables pagination-padding">
@@ -396,21 +451,26 @@ const ReusableTable = <T extends Record<string, any>>({
                   accessor: 'createdAt',
                   title: 'Created At',
                   sortable: true,
-                  render: ({ createdAt }: { createdAt: string }) => format(new Date(createdAt), 'dd MMM yyyy HH:mm:ss'), // e.g., 15 Feb 2025 06:07:51
+                  render: (row) =>
+                    row.createdAt
+                      ? format(new Date(row.createdAt), 'dd MMM yyyy HH:mm:ss')
+                      : '',
                 },
                 {
                   accessor: 'updatedAt',
                   title: 'Updated At',
                   sortable: true,
-                  render: ({ updatedAt }: { updatedAt: string }) => format(new Date(updatedAt), 'dd MMM yyyy HH:mm:ss'), // e.g., 15 Feb 2025 06:07:51
+                  render: (row) =>
+                    row.updatedAt
+                      ? format(new Date(row.updatedAt), 'dd MMM yyyy HH:mm:ss')
+                      : '',
                 },
                 {
                   accessor: 'action',
                   title: 'Actions',
                   sortable: false,
-                  render: ({ id }: { id: number }) => renderActions(id),
+                  render: (row) => renderActions(row.id),
                 },
-
               ]}
               highlightOnHover
               totalRecords={paginationInfo.totalItems}
