@@ -61,7 +61,7 @@ const addCar = async (payload: Record<string, any>) => {
 
 
 /* Update Car */
-const updateCar  = async (payload: Record<string, any>) => {
+const updateCar = async (payload: Record<string, any>) => {
     try {
         const response = await api.put(Apis.UpdateCar, payload, {
             headers: { 'Content-Type': 'multipart/form-data' },
@@ -160,6 +160,23 @@ const bulkDeleteCars = async (ids: number[]) => {
     }
 };
 
+const fuzzySearch = async (params: Record<string, any>) => {
+    try {
+        const response = await api.get(Apis.FuzzySearchCars, { params });
+
+        if (!response || response.data.success === false || !response.data.data?.length) {
+            showTopCenterNotification('No cars found.');
+            return { data: [], pagination: { totalItems: 0, totalPages: 0 } };
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching fuzzy search cars:', error);
+        showTopCenterNotification('An error occurred while fetching the fuzzy search cars.');
+        return { data: [], pagination: { totalItems: 0, totalPages: 0 } };
+    }
+};
+
 export default {
     listCars,
     addCar,
@@ -168,4 +185,5 @@ export default {
     getCarBySlug,
     deleteCar,
     bulkDeleteCars,
+    fuzzySearch
 };
