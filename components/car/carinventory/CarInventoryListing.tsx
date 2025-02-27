@@ -438,9 +438,9 @@ const CarInventoryListing: React.FC = () => {
                     )?.FileSystem?.path;
                     const firstImage = car.CarImages[0]?.FileSystem?.path;
                     const imagePath = exteriorImage
-                        ? `http://localhost:4000/uploads${exteriorImage}`
+                        ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/uploads${exteriorImage}`
                         : firstImage
-                            ? `http://localhost:4000/uploads${firstImage}`
+                            ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/uploads${firstImage}`
                             : "/placeholder-image.jpg";
 
                     const aedPriceObj = car.CarPrices.find((p) => p.currency === "AED");

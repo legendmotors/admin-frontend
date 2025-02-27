@@ -17,7 +17,7 @@ const ImportBrandComponent: React.FC = () => {
 
   // Initialize socket connection
   useEffect(() => {
-    const newSocket = io("http://localhost:4000"); // Adjust the URL as per your backend setup
+    const newSocket = io(process.env.NEXT_PUBLIC_IMAGE_BASE_URL); // Adjust the URL as per your backend setup
     setSocket(newSocket);
 
     newSocket.on("progress", (data: ProgressData) => {
@@ -67,7 +67,7 @@ const ImportBrandComponent: React.FC = () => {
         },
       });
 
-      const response = await fetch("http://localhost:4000/api/brand/import", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/api/brand/import`, {
         method: "POST",
         body: formData,
       });
