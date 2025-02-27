@@ -26,7 +26,7 @@ const UploadItem = ({
   const xhrRef = useRef();
   const { onError } = useFiles();
 
-  const MAX_FILE_SIZE = 2 * 1024 * 1024; // ✅ 2MB limit
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // ✅ 2MB limit
 
   const handleUploadError = (xhr) => {
     setUploadProgress(0);

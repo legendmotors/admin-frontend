@@ -180,52 +180,53 @@ const FileManager = ({
                   triggerAction={triggerAction}
                 />
               </LayoutProvider>
-              <div className="mb-5 mt-5">
-                <div className="flex w-full flex-col justify-center">
-                  <ul className="m-auto inline-flex items-center space-x-1 rtl:space-x-reverse">
-                    <li>
-                      <button
-                        type="button"
-                        className="flex justify-center rounded bg-white-light px-3.5 py-2 font-semibold text-dark transition hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
-                        disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)}
-                      >
-                        Prev
-                      </button>
-                    </li>
-                    {/* Display pages dynamically */}
-                    {[...Array(totalPages)].map((_, index) => {
-                      const pageNumber = index + 1;
-                      return (
-                        <li key={pageNumber}>
-                          <button
-                            type="button"
-                            className={`flex justify-center rounded px-3.5 py-2 font-semibold text-dark transition ${pageNumber === currentPage
-                              ? "bg-primary text-white dark:bg-primary dark:text-white-light"
-                              : "bg-white-light hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
-                              }`}
-                            onClick={() => onPageChange(pageNumber)}
-                          >
-                            {pageNumber}
-                          </button>
-                        </li>
-                      );
-                    })}
-                    <li>
-                      <button
-                        type="button"
-                        className="flex justify-center rounded bg-white-light px-3.5 py-2 font-semibold text-dark transition hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
-                        disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)}
-                      >
-                        Next
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-              </div>
+
             </ClipBoardProvider>
           </SelectionProvider>
         </FileNavigationProvider>
       </FilesProvider>
+      <div className="mb-5 mt-5">
+        <div className="flex w-full flex-col justify-center">
+          <ul className="m-auto inline-flex items-center space-x-1 rtl:space-x-reverse">
+            <li>
+              <button
+                type="button"
+                className="flex justify-center rounded bg-white-light px-3.5 py-2 font-semibold text-dark transition hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
+                disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)}
+              >
+                Prev
+              </button>
+            </li>
+            {/* Display pages dynamically */}
+            {[...Array(totalPages)].map((_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <li key={pageNumber}>
+                  <button
+                    type="button"
+                    className={`flex justify-center rounded px-3.5 py-2 font-semibold text-dark transition ${pageNumber === currentPage
+                      ? "bg-primary text-white dark:bg-primary dark:text-white-light"
+                      : "bg-white-light hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
+                      }`}
+                    onClick={() => onPageChange(pageNumber)}
+                  >
+                    {pageNumber}
+                  </button>
+                </li>
+              );
+            })}
+            <li>
+              <button
+                type="button"
+                className="flex justify-center rounded bg-white-light px-3.5 py-2 font-semibold text-dark transition hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
+                disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)}
+              >
+                Next
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
     </main>
   );
 };
