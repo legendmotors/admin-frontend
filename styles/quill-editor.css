@@ -107,19 +107,16 @@
   background: #f4f4f4;
   padding: 8px;
   border-radius: 5px;
+  color: white;
 }
 
 .toolbar button {
-  background: #eee;
   border: 1px solid #ccc;
   padding: 5px 10px;
   cursor: pointer;
   font-size: 14px;
 }
 
-.toolbar button:hover {
-  background: #ddd;
-}
 
 .tiptap {
   min-height: 300px; /* Set a minimum height */

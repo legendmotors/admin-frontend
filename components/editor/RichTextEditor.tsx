@@ -74,7 +74,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialValue, onChange 
 
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/file-system/upload`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}file-system/upload`,
           {
             method: "POST",
             body: formData,

@@ -278,7 +278,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                         }
                     });
 
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/file-system/upload`, {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}file-system/upload`, {
                         method: 'POST',
                         body: formData,
                     });

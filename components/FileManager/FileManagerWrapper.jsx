@@ -12,7 +12,7 @@ import { useFileManagement } from "./hooks/useFileManagement";
 
 const FileManagerWrapper = () => {
   const fileUploadConfig = {
-    url: process.env.NEXT_PUBLIC_API_BASE_URL + "/file-system/upload",
+    url: process.env.NEXT_PUBLIC_API_BASE_URL + "file-system/upload",
   };
 
   const {
@@ -62,8 +62,8 @@ const FileManagerWrapper = () => {
           layout="grid"
           enableFilePreview
           maxFileSize={10485760}
-          filePreviewPath={`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/uploads`}
-          acceptedFileTypes=".txt, .png, .jpg, .jpeg, .pdf, .doc, .docx, .exe, .webp"
+          filePreviewPath={`${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}`}
+          acceptedFileTypes=".txt, .png, .jpg, .jpeg, .pdf, .doc, .docx, .exe"
           height="100%"
           width="100%"
           initialPath=""

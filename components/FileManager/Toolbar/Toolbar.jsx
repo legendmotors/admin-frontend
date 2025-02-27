@@ -147,7 +147,7 @@ const Toolbar = ({
           {toolbarLeftItems
             .filter((item) => item.permission)
             .map((item, index) => (
-              <button className="btn btn-primary gap-2 mx-1" key={index} onClick={item.onClick}>
+              <button className="btn bg-primary" key={index} onClick={item.onClick}>
                 {item.icon}
                 <span>{item.text}</span>
               </button>
