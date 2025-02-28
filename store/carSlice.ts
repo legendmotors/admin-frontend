@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import CarService from '@/services/CarService';
 import { Car } from '@/types'; // or wherever your Car interface is
-import { IRootState } from '@/store'; // see store setup below
+import { IRootState } from '@/store';
 
 interface CarState {
   cars: Car[];
@@ -20,33 +20,58 @@ const initialState: CarState = {
 };
 
 export const fetchCarList = createAsyncThunk<
-  // The returned type:
   { data: Car[]; pagination: { totalItems: number; currentPage: number; totalPages: number } },
-  // The argument type:
   { page: number },
-  // ThunkApiConfig:
   { state: IRootState }
->('car/fetchCarList', async ({ page }, { getState, rejectWithValue }) => {
-  try {
-    const { filters } = getState();
-    const params: Record<string, any> = {
-      page,
-      limit: 12,
-    };
+>(
+  'car/fetchCarList',
+  async ({ page }, { getState, rejectWithValue }) => {
+    try {
+      const { filters } = getState();
+      const params: Record<string, any> = {
+        page,
+        limit: 12,
+      };
 
-    if (filters.brandId.length > 0) params.brandId = filters.brandId.join(',');
-    if (filters.modelId.length > 0) params.modelId = filters.modelId.join(',');
-    if (filters.trimId.length > 0) params.trimId = filters.trimId.join(',');
-    if (filters.yearId.length > 0) params.yearId = filters.yearId.join(',');
-    if (filters.searchQuery.trim()) params.search = filters.searchQuery.trim();
+      // Fixed filters
+      if (filters.brandId.length > 0) params.brandId = filters.brandId.join(',');
+      if (filters.modelId.length > 0) params.modelId = filters.modelId.join(',');
+      if (filters.trimId.length > 0) params.trimId = filters.trimId.join(',');
+      if (filters.yearId.length > 0) params.yearId = filters.yearId.join(',');
+      if (filters.searchQuery.trim()) params.search = filters.searchQuery.trim();
 
-    const response = await CarService.listCars(params);
-    // Make sure response matches the type you declared above
-    return response;
-  } catch (error) {
-    return rejectWithValue(error);
+      // Price range filters for AED
+      if (filters.minPriceAED !== null && filters.minPriceAED !== undefined) {
+        params.minPriceAED = filters.minPriceAED;
+      }
+      if (filters.maxPriceAED !== null && filters.maxPriceAED !== undefined) {
+        params.maxPriceAED = filters.maxPriceAED;
+      }
+
+      // Price range filters for USD
+      if (filters.minPriceUSD !== null && filters.minPriceUSD !== undefined) {
+        params.minPriceUSD = filters.minPriceUSD;
+      }
+      if (filters.maxPriceUSD !== null && filters.maxPriceUSD !== undefined) {
+        params.maxPriceUSD = filters.maxPriceUSD;
+      }
+
+      // Dynamic specification filters
+      if (filters.specFilters) {
+        Object.entries(filters.specFilters).forEach(([key, values]) => {
+          if (values.length > 0) {
+            params[key] = values.join(',');
+          }
+        });
+      }
+
+      const response = await CarService.listCars(params);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   }
-});
+);
 
 const carSlice = createSlice({
   name: 'car',

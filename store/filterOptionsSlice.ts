@@ -6,6 +6,11 @@ interface FilterState {
   trimId: string[];
   yearId: string[];
   searchQuery: string;
+  specFilters: Record<string, string[]>;
+  minPriceAED: number | null;
+  maxPriceAED: number | null;
+  minPriceUSD: number | null;
+  maxPriceUSD: number | null;
 }
 
 const initialState: FilterState = {
@@ -14,6 +19,11 @@ const initialState: FilterState = {
   trimId: [],
   yearId: [],
   searchQuery: '',
+  specFilters: {},
+  minPriceAED: null,
+  maxPriceAED: null,
+  minPriceUSD: null,
+  maxPriceUSD: null,
 };
 
 const filterSlice = createSlice({
@@ -41,12 +51,35 @@ const filterSlice = createSlice({
     setSearchQuery(state, action: PayloadAction<string>) {
       state.searchQuery = action.payload;
     },
+    setSpecFilter(state, action: PayloadAction<{ key: string; value: string[] }>) {
+      const { key, value } = action.payload;
+      state.specFilters[key] = value;
+    },
+    setPriceRangeAED(
+      state,
+      action: PayloadAction<{ minPrice: number | null; maxPrice: number | null }>
+    ) {
+      state.minPriceAED = action.payload.minPrice;
+      state.maxPriceAED = action.payload.maxPrice;
+    },
+    setPriceRangeUSD(
+      state,
+      action: PayloadAction<{ minPrice: number | null; maxPrice: number | null }>
+    ) {
+      state.minPriceUSD = action.payload.minPrice;
+      state.maxPriceUSD = action.payload.maxPrice;
+    },
     resetFilters(state) {
       state.brandId = [];
       state.modelId = [];
       state.trimId = [];
       state.yearId = [];
       state.searchQuery = '';
+      state.specFilters = {};
+      state.minPriceAED = null;
+      state.maxPriceAED = null;
+      state.minPriceUSD = null;
+      state.maxPriceUSD = null;
     },
   },
 });
@@ -57,7 +90,10 @@ export const {
   setTrimId,
   setYearId,
   setSearchQuery,
+  setSpecFilter,
   resetFilters,
+  setPriceRangeAED,
+  setPriceRangeUSD,
 } = filterSlice.actions;
 
 export default filterSlice.reducer;

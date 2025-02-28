@@ -27,15 +27,38 @@ import {
     setYearId,
     setSearchQuery,
     resetFilters,
+    setSpecFilter,
+    setPriceRangeAED,
+    setPriceRangeUSD,
 } from "@/store/filterOptionsSlice";
 import { fetchCarList, resetCars, incrementPage } from "@/store/carSlice";
+import { RangeSlider } from '@mantine/core';
 
 // Local or shared types
 import { Car, SelectOption } from "@/types";
 import CarService from "@/services/CarService";
+import SectionHeader from "@/components/utils/SectionHeader";
+import SpecificationService from "@/services/SpecificationService";
+import FeatureService from "@/services/FeatureService";
 
+import Select, { MultiValue, SingleValue } from 'react-select';
 /** Filter keys we want to handle (brandId, modelId, trimId, yearId). */
 const FILTER_KEYS = ["brandId", "modelId", "trimId", "yearId"] as const;
+
+interface Specification {
+    id: number;
+    name: string;
+    key: string;
+    mandatory: boolean;
+    values: { value: string; label: string }[];
+}
+
+interface Feature {
+    id: number;
+    name: string;
+    mandatory: boolean;
+    values: { id: number; name: string }[];
+}
 
 const CarInventoryListing: React.FC = () => {
     const searchParams = useSearchParams();
@@ -53,8 +76,15 @@ const CarInventoryListing: React.FC = () => {
     const [selectedModels, setSelectedModels] = useState<SelectOption[]>([]);
     const [selectedTrims, setSelectedTrims] = useState<SelectOption[]>([]);
     const [selectedYears, setSelectedYears] = useState<SelectOption[]>([]);
+    const [localPriceRangeAED, setLocalPriceRangeAED] = useState<[number, number]>([0, 200000]);
+    const [localPriceRangeUSD, setLocalPriceRangeUSD] = useState<[number, number]>([0, 50000]);
+    // Manual input states
+    const [manualMinAED, setManualMinAED] = useState<string>("");
+    const [manualMaxAED, setManualMaxAED] = useState<string>("");
+    const [manualMinUSD, setManualMinUSD] = useState<string>("");
+    const [manualMaxUSD, setManualMaxUSD] = useState<string>("");
 
-    // ---------------------------------------------------------
+    const [selectedPriceCurrency, setSelectedPriceCurrency] = useState<"AED" | "USD">("AED");    // ---------------------------------------------------------
     // 1) On mount, remove empty params from URL
     // ---------------------------------------------------------
     useEffect(() => {
@@ -72,26 +102,120 @@ const CarInventoryListing: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        // Define fixed keys that are handled separately
+        const FIXED_KEYS = [
+            "search",
+            "brandId",
+            "modelId",
+            "trimId",
+            "yearId",
+            "minPriceAED",
+            "maxPriceAED",
+            "minPriceUSD",
+            "maxPriceUSD"
+        ];
+
+        // Rehydrate fixed filters (if needed; you already have these in your code)
+        // …
+
+        // Rehydrate dynamic specification filters:
+        params.forEach((value, key) => {
+            if (!FIXED_KEYS.includes(key)) {
+                // Always convert the key to lowercase to standardize it
+                const specKey = key.toLowerCase();
+                const specValues = value.split(",").filter(Boolean);
+                if (specValues.length > 0) {
+                    dispatch(setSpecFilter({ key: specKey, value: specValues }));
+                }
+            }
+        });
+        // Now fetch the cars using these filters.
+        dispatch(resetCars());
+        dispatch(fetchCarList({ page: 1 }));
+    }, [searchParams, dispatch]);
+
+
+
+    // Rehydrate price ranges from URL
+    useEffect(() => {
+        const urlMinAED = searchParams.get("minPriceAED");
+        const urlMaxAED = searchParams.get("maxPriceAED");
+        if (urlMinAED && urlMaxAED) {
+            const parsedMinAED = Number(urlMinAED);
+            const parsedMaxAED = Number(urlMaxAED);
+            setLocalPriceRangeAED([parsedMinAED, parsedMaxAED]);
+            setManualMinAED(urlMinAED);
+            setManualMaxAED(urlMaxAED);
+            dispatch(setPriceRangeAED({ minPrice: parsedMinAED, maxPrice: parsedMaxAED }));
+            // Set active currency to AED if present
+            setSelectedPriceCurrency("AED");
+        }
+        const urlMinUSD = searchParams.get("minPriceUSD");
+        const urlMaxUSD = searchParams.get("maxPriceUSD");
+        if (urlMinUSD && urlMaxUSD) {
+            const parsedMinUSD = Number(urlMinUSD);
+            const parsedMaxUSD = Number(urlMaxUSD);
+            setLocalPriceRangeUSD([parsedMinUSD, parsedMaxUSD]);
+            setManualMinUSD(urlMinUSD);
+            setManualMaxUSD(urlMaxUSD);
+            dispatch(setPriceRangeUSD({ minPrice: parsedMinUSD, maxPrice: parsedMaxUSD }));
+            // Set active currency to USD if present
+            setSelectedPriceCurrency("USD");
+        }
+    }, [searchParams, dispatch]);
+
     // ---------------------------------------------------------
     // 2) Update URL whenever filters change (synchronization)
     // ---------------------------------------------------------
+
+    useEffect(() => {
+        console.log("Redux filters state:", filters);
+    }, [filters]);
+
     useEffect(() => {
         const params = new URLSearchParams();
         if (filters.searchQuery.trim()) {
             params.set("search", filters.searchQuery.trim());
         }
+        // Fixed filters
         for (const key of FILTER_KEYS) {
             const arr = filters[key];
             if (arr && arr.length > 0) {
                 params.set(key, arr.join(","));
             }
         }
+        // Dynamic spec filters
+        if (filters.specFilters) {
+            for (const key in filters.specFilters) {
+                const values = filters.specFilters[key];
+                if (values && values.length > 0) {
+                    params.set(key, values.join(","));
+                }
+            }
+        }
+        // Set price filters only for the selected currency
+        if (selectedPriceCurrency === "AED") {
+            if (filters.minPriceAED != null) {
+                params.set("minPriceAED", filters.minPriceAED.toString());
+            }
+            if (filters.maxPriceAED != null) {
+                params.set("maxPriceAED", filters.maxPriceAED.toString());
+            }
+        } else if (selectedPriceCurrency === "USD") {
+            if (filters.minPriceUSD != null) {
+                params.set("minPriceUSD", filters.minPriceUSD.toString());
+            }
+            if (filters.maxPriceUSD != null) {
+                params.set("maxPriceUSD", filters.maxPriceUSD.toString());
+            }
+        }
         router.push(`?${params.toString()}`, { scroll: false });
-        // When filters change, reset the car list and fetch fresh data.
         dispatch(resetCars());
         dispatch(fetchCarList({ page: 1 }));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters]);
+    }, [filters, selectedPriceCurrency]);
+
 
     // ---------------------------------------------------------
     // 3) Infinite scroll using intersection observer.
@@ -271,6 +395,12 @@ const CarInventoryListing: React.FC = () => {
         setSelectedModels([]);
         setSelectedTrims([]);
         setSelectedYears([]);
+        setLocalPriceRangeAED([0, 200000]);
+        setLocalPriceRangeUSD([0, 50000]);
+        setManualMinAED("");
+        setManualMaxAED("");
+        setManualMinUSD("");
+        setManualMaxUSD("");
         dispatch(resetFilters());
         dispatch(resetCars());
         router.push("?", { scroll: false });
@@ -347,166 +477,403 @@ const CarInventoryListing: React.FC = () => {
         }),
     };
 
+
+    const [specifications, setSpecifications] = useState<Specification[]>([]);
+    const [features, setFeatures] = useState<Feature[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+
+
+    useEffect(() => {
+        const fetchSpecificationsWithValues = async () => {
+            try {
+                setLoading(true);
+                const specsRes = await SpecificationService.listSpecifications({ limit: 0 });
+                const specsData = specsRes.data;
+
+                const specsWithValues = await Promise.all(
+                    specsData.map(async (spec: any) => {
+                        const valuesRes = await SpecificationService.listSpecificationValues({
+                            specificationId: spec.id,
+                            limit: 0,
+                        });
+                        const values = valuesRes.data.map((v: any) => ({
+                            value: v.id,
+                            label: v.name,
+                        }));
+                        return { ...spec, values };
+                    })
+                );
+
+                setSpecifications(specsWithValues);
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching specifications:', error);
+                setLoading(false);
+            }
+        };
+        fetchSpecificationsWithValues();
+    }, []);
+
+    // -----------------------
+    // Fetching: Features, Values
+    // -----------------------
+    useEffect(() => {
+        const fetchFeaturesWithValues = async () => {
+            try {
+                const featuresRes = await FeatureService.listFeatures({ limit: 0 });
+                const featuresData = featuresRes.data;
+
+                const featuresWithValues = await Promise.all(
+                    featuresData.map(async (feature: any) => {
+                        const valuesRes = await FeatureService.listFeatureValues({
+                            featureId: feature.id,
+                            limit: 0,
+                        });
+                        const values = valuesRes.data.map((v: any) => ({
+                            id: v.id,
+                            name: v.name,
+                            slug: v.slug,
+                        }));
+                        return { ...feature, values };
+                    })
+                );
+
+                setFeatures(featuresWithValues);
+            } catch (error) {
+                console.error('Error fetching features:', error);
+            }
+        };
+        fetchFeaturesWithValues();
+    }, []);
+
+    console.log(localPriceRangeAED, "localPriceRangeAED");
+
     // ---------------------------------------------------------
     // 10) RENDER
     // ---------------------------------------------------------
     return (
-        <div className="container mx-auto p-4">
-            {/* Filter Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <AsyncPaginate
-                    isMulti
-                    loadOptions={loadBrandOptions}
-                    debounceTimeout={300}
-                    additional={{ page: 1 }}
-                    value={selectedBrands}
-                    onChange={handleBrandsChange}
-                    placeholder="Select Brand(s)"
-                    styles={customStyles}
-                />
-                <AsyncPaginate
-                    isMulti
-                    loadOptions={loadModelOptions}
-                    cacheUniqs={[filters.brandId.join(",")]}
-                    debounceTimeout={300}
-                    additional={{ page: 1 }}
-                    value={selectedModels}
-                    onChange={handleModelsChange}
-                    placeholder="Select Model(s)"
-                    isDisabled={!filters.brandId.length}
-                    styles={customStyles}
-                />
-                <AsyncPaginate
-                    isMulti
-                    loadOptions={loadTrimOptions}
-                    cacheUniqs={[filters.modelId.join(",")]}
-                    debounceTimeout={300}
-                    additional={{ page: 1 }}
-                    value={selectedTrims}
-                    onChange={handleTrimsChange}
-                    placeholder="Select Trim(s)"
-                    isDisabled={!filters.modelId.length}
-                    styles={customStyles}
-                />
-                <AsyncPaginate
-                    isMulti
-                    loadOptions={loadYearOptions}
-                    cacheUniqs={[
-                        filters.brandId.join(","),
-                        filters.modelId.join(","),
-                        filters.trimId.join(","),
-                    ]}
-                    debounceTimeout={300}
-                    additional={{ page: 1 }}
-                    value={selectedYears}
-                    onChange={handleYearsChange}
-                    placeholder="Select Year(s)"
-                    styles={customStyles}
-                />
-                <button onClick={handleResetFilters} className="btn btn-secondary w-full">
-                    Reset Filters
-                </button>
-            </div>
+        <div className="flex flex-col gap-2.5 xl:flex-row">
 
-            {/* Top bar: total, import, search, add new */}
-            <div className="flex justify-between items-center mb-4">
-                <div className="text-xl font-semibold">{totalCars} Total</div>
-                <div className="flex gap-2 items-center">
-                    <ImportComponent {...importComponentConfig} />
-                    <input
-                        type="text"
-                        value={filters.searchQuery}
-                        onChange={(e) => dispatch(setSearchQuery(e.target.value))}
-                        placeholder="Search by Stock ID"
-                        className="form-input w-auto"
-                    />
-                    <button onClick={handleSearch} className="btn btn-success flex gap-1">
-                        <IconSearch /> Search
-                    </button>
-                    <Link href="/inventory/add" className="btn btn-primary">
-                        <IconPlus /> Add New
-                    </Link>
-                </div>
-            </div>
+            <div className="panel flex-1 px-0 pb-6 ltr:xl:mr-6 rtl:xl:ml-6 pt-0 ">
+                <SectionHeader title="Car Inventory" />
+                <div className="px-4 w-100">
+                    {/* Filter Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <AsyncPaginate
+                            isMulti
+                            loadOptions={loadBrandOptions}
+                            debounceTimeout={300}
+                            additional={{ page: 1 }}
+                            value={selectedBrands}
+                            onChange={handleBrandsChange}
+                            placeholder="Select Brand(s)"
+                            styles={customStyles}
+                        />
+                        <AsyncPaginate
+                            isMulti
+                            loadOptions={loadModelOptions}
+                            cacheUniqs={[filters.brandId.join(",")]}
+                            debounceTimeout={300}
+                            additional={{ page: 1 }}
+                            value={selectedModels}
+                            onChange={handleModelsChange}
+                            placeholder="Select Model(s)"
+                            isDisabled={!filters.brandId.length}
+                            styles={customStyles}
+                        />
+                        <AsyncPaginate
+                            isMulti
+                            loadOptions={loadTrimOptions}
+                            cacheUniqs={[filters.modelId.join(",")]}
+                            debounceTimeout={300}
+                            additional={{ page: 1 }}
+                            value={selectedTrims}
+                            onChange={handleTrimsChange}
+                            placeholder="Select Trim(s)"
+                            isDisabled={!filters.modelId.length}
+                            styles={customStyles}
+                        />
+                        <AsyncPaginate
+                            isMulti
+                            loadOptions={loadYearOptions}
+                            cacheUniqs={[
+                                filters.brandId.join(","),
+                                filters.modelId.join(","),
+                                filters.trimId.join(","),
+                            ]}
+                            debounceTimeout={300}
+                            additional={{ page: 1 }}
+                            value={selectedYears}
+                            onChange={handleYearsChange}
+                            placeholder="Select Year(s)"
+                            styles={customStyles}
+                        />
 
-            {/* Cars List */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {cars.map((car: Car, index: number) => {
-                    const isLastCar = index === cars.length - 1;
-                    const exteriorImage = car.CarImages.find(
-                        (img) => img.type === "exterior"
-                    )?.FileSystem?.path;
-                    const firstImage = car.CarImages[0]?.FileSystem?.path;
-                    const imagePath = exteriorImage
-                        ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/uploads${exteriorImage}`
-                        : firstImage
-                            ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}/uploads${firstImage}`
-                            : "/placeholder-image.jpg";
-
-                    const aedPriceObj = car.CarPrices.find((p) => p.currency === "AED");
-                    const aedPrice = aedPriceObj ? formatCurrency(aedPriceObj.price) : "-";
-                    const usdPriceObj = car.CarPrices.find((p) => p.currency === "USD");
-                    const usdPrice = usdPriceObj ? formatCurrency(usdPriceObj.price) : "-";
-
-                    return (
-                        <div
-                            key={car.id}
-                            ref={isLastCar ? ref : null}
-                            className="border rounded-lg shadow-md flex flex-col bg-white relative"
-                        >
-                            <img
-                                src={imagePath}
-                                alt={`${car.Brand.name} ${car.CarModel.name}`}
-                                width={300}
-                                height={200}
-                                className="rounded w-full h-[200px] object-contain"
-                            />
-                            <div className="p-4">
-                                <h5 className="mt-2 font-bold text-xs">
-                                    <span className="badge bg-dark">ID : {car.stockId}</span>
-                                </h5>
-                                {car.Tags.length > 0 && (
-                                    <div className="mt-3 flex gap-2">
-                                        {car.Tags.map((tag) => (
-                                            <span key={tag.id} className="badge badge-outline-info">
-                                                {tag.name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                <h3 className="mt-2 font-bold text-lg">
-                                    {car.Year.year} {car.Brand.name} {car.CarModel.name} {car.Trim.name}
-                                </h3>
-                                <div className="flex justify-between">
-                                    <div className="text-lg font-bold mt-1 text-green-600">
-                                        AED {aedPrice}
-                                    </div>
-                                    <div className="text-lg font-bold mt-1 text-green-600">
-                                        $ {usdPrice}
-                                    </div>
+                        {/* Conditionally render Price Filter for the active currency */}
+                        {selectedPriceCurrency === "AED" ? (
+                            <div>
+                                <label className="block font-medium mb-1">Price Range   <select
+                                    className="form-select w-24"
+                                    value={selectedPriceCurrency}
+                                    onChange={(e) => {
+                                        const currency = e.target.value as "AED" | "USD";
+                                        setSelectedPriceCurrency(currency);
+                                        // No reset of filters is done here, only the visibility changes.
+                                    }}
+                                >
+                                    <option value="AED">AED</option>
+                                    <option value="USD">USD</option>
+                                </select></label>
+                                <RangeSlider
+                                    min={0}
+                                    max={500000}
+                                    step={1000}
+                                    value={localPriceRangeAED}
+                                    onChange={setLocalPriceRangeAED}
+                                    onChangeEnd={(value) => {
+                                        dispatch(setPriceRangeAED({ minPrice: value[0], maxPrice: value[1] }));
+                                    }}
+                                    className="mt-2"
+                                />
+                                <div className="mt-2 flex justify-between">
+                                    <span className="badge bg-primary rounded-full">Min: {localPriceRangeAED[0]}</span>
+                                    <span className="badge bg-primary rounded-full ml-2">Max: {localPriceRangeAED[1]}</span>
                                 </div>
-                                <div className="mt-2 flex gap-2">
-                                    <Link
-                                        href={`/inventory/edit/${car.id}`}
-                                        className="btn btn-info flex items-center gap-1"
-                                    >
-                                        <IconPencil /> Edit
-                                    </Link>
+                                <div className="mt-3 flex gap-2">
+                                    <input
+                                        type="number"
+                                        placeholder="From"
+                                        className="form-input"
+                                        value={manualMinAED}
+                                        onChange={(e) => setManualMinAED(e.target.value)}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="To"
+                                        className="form-input"
+                                        value={manualMaxAED}
+                                        onChange={(e) => setManualMaxAED(e.target.value)}
+                                    />
                                     <button
-                                        className="btn btn-danger flex items-center gap-1"
-                                        onClick={() => handleDelete(car.id)}
+                                        className="btn btn-primary"
+                                        onClick={() => {
+                                            const fromVal = manualMinAED ? parseInt(manualMinAED, 10) : 0;
+                                            const toVal = manualMaxAED ? parseInt(manualMaxAED, 10) : 500000;
+                                            setLocalPriceRangeAED([fromVal, toVal]);
+                                            dispatch(setPriceRangeAED({ minPrice: fromVal, maxPrice: toVal }));
+                                        }}
                                     >
-                                        <IconTrash /> Delete
+                                        Apply
                                     </button>
                                 </div>
                             </div>
+                        ) : (
+                            <div>
+                                <label className="block font-medium mb-1">Price Range   <select
+                                    className="form-select w-24"
+                                    value={selectedPriceCurrency}
+                                    onChange={(e) => {
+                                        const currency = e.target.value as "AED" | "USD";
+                                        setSelectedPriceCurrency(currency);
+                                        // No reset of filters is done here, only the visibility changes.
+                                    }}
+                                >
+                                    <option value="AED">AED</option>
+                                    <option value="USD">USD</option>
+                                </select></label>
+                                <RangeSlider
+                                    min={0}
+                                    max={100000}
+                                    step={500}
+                                    value={localPriceRangeUSD}
+                                    onChange={setLocalPriceRangeUSD}
+                                    onChangeEnd={(value) => {
+                                        dispatch(setPriceRangeUSD({ minPrice: value[0], maxPrice: value[1] }));
+                                    }}
+                                />
+                                 <div className="mt-2 flex justify-between">
+                                    <span className="badge bg-primary rounded-full">Min: {localPriceRangeUSD[0]}</span>
+                                    <span className="badge bg-primary rounded-full ml-2">Max: {localPriceRangeUSD[1]}</span>
+                                </div>
+                                <div className="mt-3 flex gap-2">
+                                    <input
+                                        type="number"
+                                        placeholder="From"
+                                        className="form-input"
+                                        value={manualMinUSD}
+                                        onChange={(e) => setManualMinUSD(e.target.value)}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="To"
+                                        className="form-input"
+                                        value={manualMaxUSD}
+                                        onChange={(e) => setManualMaxUSD(e.target.value)}
+                                    />
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => {
+                                            const fromVal = manualMinUSD ? parseInt(manualMinUSD, 10) : 0;
+                                            const toVal = manualMaxUSD ? parseInt(manualMaxUSD, 10) : 100000;
+                                            setLocalPriceRangeUSD([fromVal, toVal]);
+                                            dispatch(setPriceRangeUSD({ minPrice: fromVal, maxPrice: toVal }));
+                                        }}
+                                    >
+                                        Apply
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Additional specification filters */}
+                        {specifications.map((spec) => (
+                            <div key={spec.id}>
+                                <label className="block font-medium mb-1">
+                                    {spec.name} {spec.mandatory && <span className="text-red-500">*</span>}
+                                </label>
+                                <div>
+                                    <Select
+                                        isMulti
+                                        options={spec.values}
+                                        placeholder={`Select ${spec.name}`}
+                                        value={
+                                            filters.specFilters[spec.key.toLowerCase()]
+                                                ? spec.values.filter((option) =>
+                                                    filters.specFilters[spec.key.toLowerCase()].includes(option.value)
+                                                )
+                                                : []
+                                        }
+                                        onChange={(selectedOptions: MultiValue<SelectOption>) => {
+                                            const values = selectedOptions.map((option) => option.value);
+                                            dispatch(setSpecFilter({ key: spec.key.toLowerCase(), value: values }));
+                                        }}
+                                        isClearable
+                                    />
+
+                                </div>
+                            </div>
+                        ))}
+
+                        <button onClick={handleResetFilters} className="btn btn-secondary w-full">
+                            Reset Filters
+                        </button>
+                    </div>
+
+                    {/* Top bar: total, import, search, add new */}
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="text-xl font-semibold">{totalCars} Total</div>
+                        <div className="flex gap-2 items-center">
+                            <ImportComponent {...importComponentConfig} />
+                            <input
+                                type="text"
+                                value={filters.searchQuery}
+                                onChange={(e) => dispatch(setSearchQuery(e.target.value))}
+                                placeholder="Search by Stock ID"
+                                className="form-input w-auto"
+                            />
+                            <button onClick={handleSearch} className="btn btn-success flex gap-1">
+                                <IconSearch /> Search
+                            </button>
+                            <Link href="/inventory/add" className="btn btn-primary">
+                                <IconPlus /> Add New
+                            </Link>
                         </div>
-                    );
-                })}
-                {isLoading &&
-                    Array.from({ length: 4 }).map((_, idx) => (
-                        <Skeleton key={idx} height={210} width="100%" />
-                    ))}
+                    </div>
+
+                    {/* Cars List */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {cars.map((car: Car, index: number) => {
+                            const isLastCar = index === cars.length - 1;
+                            const exteriorImage = car.CarImages.find(
+                                (img) => img.type === "exterior"
+                            )?.FileSystem?.path;
+                            const firstImage = car.CarImages[0]?.FileSystem?.path;
+                            const imagePath = exteriorImage
+                                ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${exteriorImage}`
+                                : firstImage
+                                    ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${firstImage}`
+                                    : "/placeholder-image.jpg";
+
+                            const aedPriceObj = car.CarPrices.find((p) => p.currency === "AED");
+                            const aedPrice = aedPriceObj ? formatCurrency(aedPriceObj.price) : "-";
+                            const usdPriceObj = car.CarPrices.find((p) => p.currency === "USD");
+                            const usdPrice = usdPriceObj ? formatCurrency(usdPriceObj.price) : "-";
+                            const regionalSpecification = car?.SpecificationValues?.find(
+                                (spec) => spec?.Specification?.key === "regional_specification"
+                            );
+                            const regionalSpecificationName = regionalSpecification?.name || "N/A";
+                            const SteeringSide = car?.SpecificationValues?.find(
+                                (spec) => spec?.Specification?.key === "steering_side"
+                            );
+                            const SteeringSideName = SteeringSide?.name || "N/A";
+
+                            console.log(car, "car");
+
+                            return (
+                                <div
+                                    key={car.id}
+                                    ref={isLastCar ? ref : null}
+                                    className="border rounded-lg shadow-md flex flex-col bg-white relative"
+                                >
+                                    <img
+                                        src={imagePath}
+                                        alt={`${car.Brand.name} ${car.CarModel.name}`}
+                                        width={300}
+                                        height={200}
+                                        className="rounded w-full h-[200px] object-cover"
+                                    />
+                                    <div className="p-4">
+                                        <h5 className="mt-2 font-bold text-xs">
+                                            <span className="badge bg-dark">ID : {car.stockId}</span>
+                                        </h5>
+                                        {car.Tags.length > 0 && (
+                                            <div className="mt-3 flex gap-2">
+                                                {car.Tags.map((tag) => (
+                                                    <span key={tag.id} className="badge badge-outline-info">
+                                                        {tag.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <h3 className="mt-2 font-bold text-lg">
+                                            {car.Year.year} {car.Brand.name} {car.CarModel.name} {car.Trim.name}
+                                        </h3>
+                                        <div className="flex justify-between">
+                                            <div className="text-lg font-bold mt-1 text-green-600">
+                                                AED {aedPrice}
+                                            </div>
+                                            <div className="text-lg font-bold mt-1 text-green-600">
+                                                $ {usdPrice}
+                                            </div>
+                                        </div>
+                                        <div className="my-2 flex flex-wrap gap-0">
+                                            <span className="badge bg-primary rounded-full me-1">Region: {regionalSpecificationName}</span>
+                                            <span className="badge bg-primary rounded-full">Steering Side: {SteeringSideName}</span>
+                                        </div>
+                                        <div className="mt-2 flex gap-2">
+                                            <Link
+                                                href={`/inventory/edit/${car.id}`}
+                                                className="btn btn-info flex items-center gap-1"
+                                            >
+                                                <IconPencil /> Edit
+                                            </Link>
+                                            <button
+                                                className="btn btn-danger flex items-center gap-1"
+                                                onClick={() => handleDelete(car.id)}
+                                            >
+                                                <IconTrash /> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {isLoading &&
+                            Array.from({ length: 4 }).map((_, idx) => (
+                                <Skeleton key={idx} height={210} width="100%" />
+                            ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
