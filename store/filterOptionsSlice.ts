@@ -11,6 +11,9 @@ interface FilterState {
   maxPriceAED: number | null;
   minPriceUSD: number | null;
   maxPriceUSD: number | null;
+  sortBy: string;
+  order: 'ASC' | 'DESC';
+  tagIds: string[]; // NEW: Selected tag IDs for filtering
 }
 
 const initialState: FilterState = {
@@ -24,6 +27,9 @@ const initialState: FilterState = {
   maxPriceAED: null,
   minPriceUSD: null,
   maxPriceUSD: null,
+  sortBy: 'createdAt',  // default sort field
+  order: 'DESC',        // default sort order
+  tagIds: [],           // NEW: default empty array
 };
 
 const filterSlice = createSlice({
@@ -32,12 +38,14 @@ const filterSlice = createSlice({
   reducers: {
     setBrandId(state, action: PayloadAction<string[]>) {
       state.brandId = action.payload;
+      // When brand is updated, clear lower-level filters.
       state.modelId = [];
       state.trimId = [];
       state.yearId = [];
     },
     setModelId(state, action: PayloadAction<string[]>) {
       state.modelId = action.payload;
+      // Clear lower-level filters if model changes.
       state.trimId = [];
       state.yearId = [];
     },
@@ -69,6 +77,15 @@ const filterSlice = createSlice({
       state.minPriceUSD = action.payload.minPrice;
       state.maxPriceUSD = action.payload.maxPrice;
     },
+    setSortBy(state, action: PayloadAction<string>) {
+      state.sortBy = action.payload;
+    },
+    setOrder(state, action: PayloadAction<'ASC' | 'DESC'>) {
+      state.order = action.payload;
+    },
+    setTagIds(state, action: PayloadAction<string[]>) {
+      state.tagIds = action.payload;
+    },
     resetFilters(state) {
       state.brandId = [];
       state.modelId = [];
@@ -80,6 +97,10 @@ const filterSlice = createSlice({
       state.maxPriceAED = null;
       state.minPriceUSD = null;
       state.maxPriceUSD = null;
+      // Reset sorting to defaults
+      state.sortBy = 'createdAt';
+      state.order = 'DESC';
+      state.tagIds = []; // Clear tag filters as well
     },
   },
 });
@@ -94,6 +115,9 @@ export const {
   resetFilters,
   setPriceRangeAED,
   setPriceRangeUSD,
+  setSortBy,
+  setOrder,
+  setTagIds,
 } = filterSlice.actions;
 
 export default filterSlice.reducer;

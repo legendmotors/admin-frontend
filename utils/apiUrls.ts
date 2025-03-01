@@ -118,7 +118,7 @@ const Apis: Record<string, string> = {
     UpdateCar: `${API_URL}car/update`,
     DeleteCar: `${API_URL}car/delete`,
     GetCarList: `${API_URL}car/list`,
-    GetCarById: `${API_URL}car/getById`,
+    GetCarByIdOrSlug: `${API_URL}car/getCarByIdOrSlug`,
     GetCarBySlug: `${API_URL}car/getBySlug`,
     BulkDeleteCars: `${API_URL}car/bulk-delete`,
     FuzzySearchCars: `${API_URL}car/fuzzy-search`,

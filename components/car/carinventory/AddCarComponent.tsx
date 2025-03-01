@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
@@ -9,8 +9,15 @@ import Select, { SingleValue } from 'react-select';
 import Swal from 'sweetalert2';
 import io from 'socket.io-client';
 
+// Lightbox Imports
+import Lightbox from 'yet-another-react-lightbox';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
+
 import { IRootState, AppDispatch } from '@/store/index';
-import { setStep, setFormData, setImages, setBrochure } from '@/store/formSlice';
+import { setStep, setFormData, setImages, setBrochure, resetForm } from '@/store/formSlice';
 
 import IconThumbUp from '@/components/icon/icon-thumb-up';
 import IconMenuForms from '@/components/icon/menu/icon-menu-forms';
@@ -30,26 +37,47 @@ import ComponentsDragndropGrid from './ComponentsDragndropGrid';
 import BrochureUpload from './BrochureUpload';
 import { formatCurrency } from '@/utils/formatCurrency';
 
+// -------------------------
 // Interfaces
+// -------------------------
+interface SpecificationValue {
+  value: string | number;
+  label: string;
+}
+
 interface Specification {
   id: number;
   name: string;
   key: string;
   mandatory: boolean;
-  values: { value: string; label: string }[];
+  values: SpecificationValue[];
+}
+
+interface FeatureValue {
+  id: number;
+  name: string;
+  slug?: string;
 }
 
 interface Feature {
   id: number;
   name: string;
   mandatory: boolean;
-  values: { id: number; name: string }[];
+  values: FeatureValue[];
 }
 
-interface Image {
+export interface CarImage {
   fileId: string;
-  type: string;
-  order: number;
+  thumbnailPath?: string;
+  type?: string; // optional
+  order?: number;
+}
+
+export interface UploadedFile {
+  id: string;
+  originalPath?: string;
+  filename?: string;
+  // other fields as needed
 }
 
 interface Tag {
@@ -57,39 +85,73 @@ interface Tag {
   name: string;
 }
 
+interface FormDataType {
+  stockId: string;
+  brandId: string;
+  modelId: string;
+  trimId: string;
+  year: string;
+  price: string | number;
+  usdPrice: string | number;
+  description: string;
+  engineSize: string;
+  horsepower: string;
+  featured: boolean;
+  premium: boolean;
+  tags: number[];
+  specifications: Record<string, string | number>;
+  features: Record<number, string[]>;
+  images?: CarImage[];
+  brochureId?: string | null;
+}
+
 // Initialize socket using the correct URL from your env variable
 const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
-const AddCarComponent = () => {
+const AddCarComponent: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
 
+  // -------------------------
   // Redux states
+  // -------------------------
   const currentStep = useSelector((state: IRootState) => state.form.currentStep);
-  const formData = useSelector((state: IRootState) => state.form.formData);
-  const images = useSelector((state: IRootState) => state.form.images);
-  const brochureFile = useSelector((state: IRootState) => state.form.brochureFile);
+  const formData = useSelector((state: IRootState) => state.form.formData) as FormDataType;
+  const images = useSelector((state: IRootState) => state.form.images) as CarImage[];
+  const brochureFile = useSelector((state: IRootState) => state.form.brochureFile) as UploadedFile | null;
 
+  // -------------------------
   // Local states
+  // -------------------------
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<{ value: number; label: string } | null>(null);
   const [selectedModel, setSelectedModel] = useState<{ value: number; label: string } | null>(null);
   const [selectedTrim, setSelectedTrim] = useState<{ value: number; label: string } | null>(null);
   const [selectedYear, setSelectedYear] = useState<{ value: number; label: string } | null>(null);
+
   const [tags, setTags] = useState<Tag[]>([]);
   const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Disconnect the socket when the component unmounts
+  // Lightbox state
+  const [openLightbox, setOpenLightbox] = useState<boolean>(false);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+  const [step1Valid, setStep1Valid] = useState<boolean>(false);
+  const [step2Valid, setStep2Valid] = useState<boolean>(false);
+
+  // -------------------------
+  // Socket cleanup
+  // -------------------------
   useEffect(() => {
     return () => {
       socket.disconnect();
     };
   }, []);
 
-  // -------------------------------
-  // Fetching: Tags
-  // -------------------------------
+  // -------------------------
+  // Fetch Tags
+  // -------------------------
   useEffect(() => {
     const fetchTags = async () => {
       try {
@@ -104,9 +166,9 @@ const AddCarComponent = () => {
     fetchTags();
   }, []);
 
-  // -------------------------------
+  // -------------------------
   // Reusable fetcher for AsyncPaginate
-  // -------------------------------
+  // -------------------------
   const fetchData = async (
     serviceFunction: (params: Record<string, any>) => Promise<any>,
     searchQuery = '',
@@ -119,7 +181,8 @@ const AddCarComponent = () => {
         page: additional.page,
         limit: 10,
         status: 'published',
-        sortBy: "name", order: "asc",
+        sortBy: 'name',
+        order: 'asc',
         ...additionalParams,
       };
 
@@ -165,9 +228,9 @@ const AddCarComponent = () => {
     return fetchData(YearService.listYear, searchQuery, loadedOptions, additional);
   };
 
-  // -----------------------
-  // Fetching: Exchange Rate
-  // -----------------------
+  // -------------------------
+  // Fetch Exchange Rate
+  // -------------------------
   useEffect(() => {
     const fetchExchangeRate = async () => {
       try {
@@ -181,9 +244,9 @@ const AddCarComponent = () => {
     fetchExchangeRate();
   }, []);
 
-  // --------------------------------
-  // Fetching: Specifications, Values
-  // --------------------------------
+  // -------------------------
+  // Fetch Specifications
+  // -------------------------
   useEffect(() => {
     const fetchSpecificationsWithValues = async () => {
       try {
@@ -215,9 +278,9 @@ const AddCarComponent = () => {
     fetchSpecificationsWithValues();
   }, []);
 
-  // -----------------------
-  // Fetching: Features, Values
-  // -----------------------
+  // -------------------------
+  // Fetch Features
+  // -------------------------
   useEffect(() => {
     const fetchFeaturesWithValues = async () => {
       try {
@@ -247,19 +310,19 @@ const AddCarComponent = () => {
     fetchFeaturesWithValues();
   }, []);
 
-  // -----------------------------------
-  // Handle: Images + Brochure in Redux
-  // -----------------------------------
-  const handleImagesUpdate = (updatedImages: Image[]) => {
+  // -------------------------
+  // Handle Images + Brochure in Redux
+  // -------------------------
+  const handleImagesUpdate = (updatedImages: CarImage[]) => {
     if (JSON.stringify(images) !== JSON.stringify(updatedImages)) {
       dispatch(setImages(updatedImages));
     }
   };
 
-  // ----------------------
-  // Build default form data
-  // ----------------------
-  const defaultValues = useMemo(() => {
+  // -------------------------
+  // Build Default Form Data
+  // -------------------------
+  const defaultValues: FormDataType = useMemo(() => {
     return {
       stockId: '',
       brandId: '',
@@ -273,14 +336,11 @@ const AddCarComponent = () => {
       horsepower: '',
       featured: false,
       premium: false,
-      // Add tags as an empty array (similar to features)
-      tags: [] as number[],
-      // Build dynamic specification fields
+      tags: [],
       specifications: specifications.reduce((acc, spec) => {
         acc[spec.key] = '';
         return acc;
-      }, {} as Record<string, string>),
-      // Build dynamic feature fields
+      }, {} as Record<string, string | number>),
       features: features.reduce((acc, feature) => {
         acc[feature.id] = [];
         return acc;
@@ -289,7 +349,7 @@ const AddCarComponent = () => {
   }, [specifications, features]);
 
   // -------------------------
-  // Build validation schema
+  // Build Validation Schema
   // -------------------------
   const validationSchema = useMemo(() => {
     return Yup.object({
@@ -322,15 +382,13 @@ const AddCarComponent = () => {
           return acc;
         }, {} as Record<number, Yup.ArraySchema<Yup.StringSchema>>)
       ),
-      // (Optional) add validation for tags if needed, e.g. require at least one tag:
-      // tags: Yup.array().min(1, 'At least one tag must be selected'),
     });
   }, [specifications, features]);
 
-  // ----------------------
-  // Handle form submission for Step 1
-  // ----------------------
-  const handleNext = (values: any) => {
+  // -------------------------
+  // Handle Form Submission (Step 1)
+  // -------------------------
+  const handleNext = (values: FormDataType) => {
     dispatch(setFormData(values));
     dispatch(setStep(currentStep + 1));
     console.log('Moved to Step:', currentStep + 1);
@@ -343,10 +401,10 @@ const AddCarComponent = () => {
     }
   };
 
-  // ---------------------------
-  // Transform raw values into final payload
-  // ---------------------------
-  const constructFinalPayload = (rawValues: any) => {
+  // -------------------------
+  // Construct Final Payload
+  // -------------------------
+  const constructFinalPayload = (rawValues: FormDataType) => {
     return {
       stockId: rawValues.stockId || null,
       description: rawValues.description || '',
@@ -362,11 +420,11 @@ const AddCarComponent = () => {
       prices: [
         {
           currency: 'AED',
-          amount: rawValues.price ? parseFloat(rawValues.price) : 0,
+          amount: rawValues.price ? parseFloat(String(rawValues.price)) : 0,
         },
         {
           currency: 'USD',
-          amount: rawValues.usdPrice ? parseFloat(rawValues.usdPrice) : 0,
+          amount: rawValues.usdPrice ? parseFloat(String(rawValues.usdPrice)) : 0,
         },
       ],
       specifications: Object.entries(rawValues.specifications)
@@ -384,15 +442,14 @@ const AddCarComponent = () => {
         type: img.type,
         order: img.order,
       })),
-      // Use tags from the form values
       tags: rawValues.tags,
-      brochureId: brochureFile?.id
+      brochureId: brochureFile?.id,
     };
   };
 
-  // ----------------------
-  // Render progress HTML for SweetAlert2
-  // ----------------------
+  // -------------------------
+  // SweetAlert2 Progress
+  // -------------------------
   const renderProgressHtml = (progress: number, message: string) => `
     <div class="mb-5 space-y-5">
       <div class="w-full h-4 bg-gray-200 rounded-full">
@@ -402,9 +459,9 @@ const AddCarComponent = () => {
     </div>
   `;
 
-  // ----------------------
-  // Handle Publish with socket-driven progress updates
-  // ----------------------
+  // -------------------------
+  // Handle Publish
+  // -------------------------
   const handlePublish = async () => {
     try {
       console.log('handlePublish called!');
@@ -417,7 +474,7 @@ const AddCarComponent = () => {
           Swal.showLoading();
         },
       });
-      
+
       // Listen to socket progress events and update Swal accordingly
       socket.on('progress', (data: any) => {
         const { progress, message } = data;
@@ -425,11 +482,11 @@ const AddCarComponent = () => {
           html: renderProgressHtml(progress, message),
         });
       });
-      
-      // Force a 2-second delay if needed (optional)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Now perform the API call
+      // Optional small delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Perform the API call
       const payload = constructFinalPayload(formData);
       console.log('Publishing Payload:', payload);
       const response = await CarService.addCar(payload);
@@ -449,30 +506,128 @@ const AddCarComponent = () => {
           text: 'Your car has been added successfully.',
         }).then(() => {
           // Reset Redux state
-          dispatch(setFormData({}));
-          dispatch(setStep(1));
-          // Redirect to inventory list
+          dispatch(resetForm());
+          // Redirect to inventory list or wherever you want
           window.location.href = '/inventory/list';
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to add the car. Please try again.',
         });
       }
     } catch (error) {
       console.error('Error publishing car:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'An error occurred while publishing the car.',
-      });
     }
   };
-  console.log('Current Step:', currentStep);
-  console.log('Form Data:', formData);
-  
+
+  // -------------------------
+  // Preview Helpers (Step 3)
+  // -------------------------
+  const renderSpecificationsPreview = (): JSX.Element[] => {
+    return Object.entries(formData.specifications).map(([specKey, specValueId]) => {
+      const spec = specifications.find((s) => s.key === specKey);
+      if (!spec) return null as unknown as JSX.Element;
+
+      const valueObj = spec.values.find((v) => String(v.value) === String(specValueId));
+      return (
+        <li key={specKey}>
+          <strong>{spec.name}:</strong> {valueObj ? valueObj.label : specValueId}
+        </li>
+      );
+    }).filter(Boolean) as JSX.Element[];
+  };
+
+  const renderFeaturesPreview = (): JSX.Element[] => {
+    return Object.entries(formData.features).map(([featureId, valueIds]) => {
+      const feature = features.find((f) => String(f.id) === featureId);
+      if (!feature) return null as unknown as JSX.Element;
+
+      const labels = (valueIds as string[]).map((vId) => {
+        const valObj = feature.values.find((fv) => String(fv.id) === vId);
+        return valObj ? valObj.name : vId;
+      });
+
+      return (
+        <li key={featureId}>
+          <strong>{feature.name}:</strong> {labels.join(', ')}
+        </li>
+      );
+    }).filter(Boolean) as JSX.Element[];
+  };
+
+  const renderTagsPreview = (): string | JSX.Element => {
+    if (!formData.tags || formData.tags.length === 0) return '-';
+
+    const tagNames = formData.tags
+      .map((tagId) => {
+        const tagObj = tags.find((t) => t.id === tagId);
+        return tagObj ? tagObj.name : String(tagId);
+      })
+      .join(', ');
+
+    return tagNames || '-';
+  };
+
+  // -------------------------
+  // Lightbox for Images
+  // -------------------------
+  const slides = images.map((img) => ({
+    src: `${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}/${img.thumbnailPath}`,
+    title: `Image: ${img.fileId}`,
+  }));
+
+  const handleThumbnailClick = (index: number) => {
+    setCurrentIndex(index);
+    setOpenLightbox(true);
+  };
+
+  const renderImagesPreview = (): JSX.Element => {
+    if (!images || images.length === 0) {
+      return <p>No images uploaded.</p>;
+    }
+
+    return (
+      <div className="flex flex-wrap gap-4 mt-2">
+        {images.map((img, index) => (
+          <div
+            key={index}
+            className="w-24 h-24 bg-gray-100 rounded overflow-hidden cursor-pointer"
+            onClick={() => handleThumbnailClick(index)}
+          >
+            <img
+              src={`${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}/${img.thumbnailPath}`}
+              alt={`Car Image ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderBrochurePreview = (): JSX.Element => {
+    if (!brochureFile) {
+      return <p>No brochure uploaded.</p>;
+    }
+
+    const pdfUrl = `${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}${brochureFile.originalPath}`;
+
+    return (
+      <div className="mt-2">
+        <p className="mb-2">
+          <strong>Filename:</strong> {brochureFile.filename || 'Car Brochure'}
+        </p>
+        <div style={{ width: '100%', height: '600px', border: '1px solid #ccc' }}>
+          <iframe
+            src={`${pdfUrl}#toolbar=0`}
+            width="100%"
+            height="100%"
+            style={{ border: 'none' }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // -------------------------
+  // Render
+  // -------------------------
   if (loading) {
     return <p>Loading specifications...</p>;
   }
@@ -486,24 +641,23 @@ const AddCarComponent = () => {
             {/* Stepper / Tabs */}
             <div className="relative z-[1]">
               <div
-                className={`${
-                  currentStep === 1
-                    ? 'w-[15%]'
-                    : currentStep === 2
+                className={`${currentStep === 1
+                  ? 'w-[15%]'
+                  : currentStep === 2
                     ? 'w-[48%]'
                     : currentStep === 3
-                    ? 'w-[81%]'
-                    : ''
-                } absolute top-[30px] -z-[1] m-auto h-1 bg-primary transition-[width] ltr:left-0 rtl:right-0`}
+                      ? 'w-[81%]'
+                      : ''
+                  } absolute top-[30px] -z-[1] m-auto h-1 bg-primary transition-[width] ltr:left-0 rtl:right-0`}
               ></div>
               <ul className="mb-5 grid grid-cols-3">
+                {/* Step 1 */}
                 <li className="mx-auto">
                   <button
                     type="button"
                     onClick={() => dispatch(setStep(1))}
-                    className={`${
-                      currentStep === 1 ? '!border-primary !bg-primary text-white' : ''
-                    } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
+                    className={`${currentStep === 1 ? '!border-primary !bg-primary text-white' : ''
+                      } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
                   >
                     <IconMenuForms className="h-7 w-7" />
                   </button>
@@ -511,27 +665,33 @@ const AddCarComponent = () => {
                     Car Details
                   </span>
                 </li>
+
+                {/* Step 2 */}
                 <li className="mx-auto">
                   <button
                     type="button"
-                    onClick={() => dispatch(setStep(2))}
-                    className={`${
-                      currentStep === 2 ? '!border-primary !bg-primary text-white' : ''
-                    } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
+                    onClick={() => step1Valid && dispatch(setStep(2))} // <--- only allow if step1Valid
+                    disabled={!step1Valid}                            // <--- disable if step1Valid is false
+                    className={`${currentStep === 2 ? '!border-primary !bg-primary text-white' : ''
+                      } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]
+        ${!step1Valid ? 'cursor-not-allowed ' : ''}`}
                   >
                     <IconGallery className="h-7 w-7" />
                   </button>
                   <span className={`${currentStep === 2 ? 'text-primary ' : ''}text-center mt-2 block`}>
-                    Photos & Assets
+                    Photos &amp; Assets
                   </span>
                 </li>
+
+                {/* Step 3 */}
                 <li className="mx-auto">
                   <button
                     type="button"
-                    onClick={() => dispatch(setStep(3))}
-                    className={`${
-                      currentStep === 3 ? '!border-primary !bg-primary text-white' : ''
-                    } flex h-16 w-16 items-center justify-center rounded-full border-[3px] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
+                    onClick={() => step1Valid && step2Valid && dispatch(setStep(3))} // only if prior steps are valid
+                    disabled={!step1Valid || !step2Valid}
+                    className={`${currentStep === 3 ? '!border-primary !bg-primary text-white' : ''
+                      } flex h-16 w-16 items-center justify-center rounded-full border-[3px] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]
+        ${(!step1Valid || !step2Valid) ? 'cursor-not-allowed ' : ''}`}
                   >
                     <IconThumbUp className="h-7 w-7" />
                   </button>
@@ -542,14 +702,17 @@ const AddCarComponent = () => {
               </ul>
             </div>
 
+
             {/* Form Steps */}
             <div className="px-4 w-100">
+              {/* STEP 1: CAR DETAILS */}
               {currentStep === 1 && (
                 <Formik
                   initialValues={{ ...defaultValues, ...formData }}
                   validationSchema={validationSchema}
                   onSubmit={(values, { setSubmitting }) => {
                     console.log('No validation errors; proceed to next step');
+                    setStep1Valid(true);
                     handleNext(values);
                     setSubmitting(false);
                   }}
@@ -574,7 +737,9 @@ const AddCarComponent = () => {
                                       checked={field.value.includes(tag.id)}
                                       onChange={() => {
                                         if (field.value.includes(tag.id)) {
-                                          const newValue = field.value.filter((id: number) => id !== tag.id);
+                                          const newValue = field.value.filter(
+                                            (tId: number) => tId !== tag.id
+                                          );
                                           form.setFieldValue('tags', newValue);
                                         } else {
                                           form.setFieldValue('tags', [...field.value, tag.id]);
@@ -597,7 +762,7 @@ const AddCarComponent = () => {
                         </h2>
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                           <div>
-                            <label className="block font-medium">Stock ID (Optional)</label>
+                            <label className="block font-medium">Stock ID</label>
                             <Field
                               type="text"
                               name="stockId"
@@ -941,23 +1106,88 @@ const AddCarComponent = () => {
                 </div>
               )}
 
-              {/* STEP 3: PUBLISH */}
+              {/* STEP 3: PREVIEW & PUBLISH */}
               {currentStep === 3 && (
                 <div>
-                  <h2 className="text-lg font-bold mb-4">Review & Publish</h2>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handlePublish}
-                  >
-                    Publish
-                  </button>
+                  <h2 className="text-lg font-bold mb-4">Review &amp; Publish</h2>
+                  <div className="border rounded p-5 mb-5">
+                    <h3 className="text-md font-semibold mb-2">General Car Details</h3>
+                    <p>
+                      <strong>Stock ID:</strong> {formData.stockId || '-'}
+                    </p>
+                    <p>
+                      <strong>Brand:</strong> {selectedBrand?.label || '-'}{' '}
+                      <strong>Model:</strong> {selectedModel?.label || '-'}{' '}
+                      <strong>Trim:</strong> {selectedTrim?.label || '-'}
+                    </p>
+                    <p>
+                      <strong>Year:</strong> {selectedYear?.label || '-'}
+                    </p>
+                    <p>
+                      <strong>Price:</strong> AED {formData.price} / USD {formData.usdPrice}
+                    </p>
+                    <p>
+                      <strong>Description:</strong>{' '}
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: formData.description || '-',
+                        }}
+                      />
+                    </p>
+
+                    <h3 className="text-md font-semibold mt-4 mb-2">Specifications</h3>
+                    <ul>{renderSpecificationsPreview()}</ul>
+
+                    <h3 className="text-md font-semibold mt-4 mb-2">Features</h3>
+                    <ul>{renderFeaturesPreview()}</ul>
+
+                    <h3 className="text-md font-semibold mt-4 mb-2">Tags</h3>
+                    <p>{renderTagsPreview()}</p>
+
+                    <h3 className="text-md font-semibold mt-4 mb-2">Assets</h3>
+                    <div>
+                      <strong>Images:</strong>
+                      {renderImagesPreview()}
+                    </div>
+                    <div className="mt-4">
+                      <strong>Brochure:</strong> {renderBrochurePreview()}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleBack}
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handlePublish}
+                    >
+                      Publish
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Lightbox Component */}
+      <Lightbox
+        open={openLightbox}
+        close={() => setOpenLightbox(false)}
+        slides={slides}
+        index={currentIndex}
+        plugins={[Captions, Zoom]}
+        styles={{ container: { backgroundColor: 'rgba(0, 0, 0, 0.8)' } }}
+        captions={{ showToggle: false }}
+        zoom={{ maxZoomPixelRatio: 3 }}
+      />
     </div>
   );
 };

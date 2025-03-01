@@ -65,6 +65,19 @@ export const fetchCarList = createAsyncThunk<
         });
       }
 
+      // Tag filter (if any)
+      if (filters.tagIds && filters.tagIds.length > 0) {
+        params.tags = filters.tagIds.join(',');
+      }
+
+      // Add sorting parameters
+      if (filters.sortBy) {
+        params.sortBy = filters.sortBy;
+      }
+      if (filters.order) {
+        params.order = filters.order;
+      }
+
       const response = await CarService.listCars(params);
       return response;
     } catch (error) {

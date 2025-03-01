@@ -1,9 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface Image {
+interface CarImage {
     fileId: string;
-    type: string;
-    order: number;
+    thumbnailPath?: string;
+    type?: string; // optional
+    order?: number;
 }
 
 interface UploadedFile {
@@ -15,7 +16,7 @@ interface UploadedFile {
 interface FormState {
     currentStep: number;
     formData: { [key: string]: any };
-    images: Image[];
+    images: CarImage[];
     brochureFile: UploadedFile | null;
     tags: number[]; // Added property to store tag IDs
 }
@@ -38,7 +39,7 @@ const formSlice = createSlice({
         setFormData(state, action: PayloadAction<{ [key: string]: any }>) {
             state.formData = { ...state.formData, ...action.payload };
         },
-        setImages(state, action: PayloadAction<Image[]>) {
+        setImages(state, action: PayloadAction<CarImage[]>) {
             state.images = action.payload;
         },
         setBrochure(state, action: PayloadAction<UploadedFile>) {

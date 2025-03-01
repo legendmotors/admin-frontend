@@ -1,92 +1,164 @@
 'use client';
 
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { setStep, setFormData, setImages, setBrochure } from '@/store/formSlice'; // Adjust paths
+import { AsyncPaginate } from 'react-select-async-paginate';
+import Select, { SingleValue } from 'react-select';
+import Swal from 'sweetalert2';
+import io from 'socket.io-client';
+
+// Lightbox Imports (if you want to display images in a Lightbox during update, optional)
+import Lightbox from 'yet-another-react-lightbox';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
+
 import { IRootState, AppDispatch } from '@/store/index';
+import { setStep, setFormData, setImages, setBrochure } from '@/store/formSlice';
+
 import IconThumbUp from '@/components/icon/icon-thumb-up';
-import IconUser from '@/components/icon/icon-user';
-import SectionHeader from '@/components/utils/SectionHeader';
 import IconMenuForms from '@/components/icon/menu/icon-menu-forms';
 import IconGallery from '@/components/icon/icon-gallery';
-import { useEffect, useState } from 'react';
-import SpecificationService from '@/services/SpecificationService';
-import Select, { SingleValue } from 'react-select';
-import FeatureService from '@/services/FeatureService';
+import SectionHeader from '@/components/utils/SectionHeader';
 import RichTextEditor from '@/components/editor/RichTextEditor';
+
+import CarService from '@/services/CarService';
+import CarTagService from '@/services/CarTagService';
 import { GeBrandDetails, TrimService } from '@/services';
 import CarModelService from '@/services/CarModelService';
 import YearService from '@/services/YearService';
-import { AsyncPaginate } from 'react-select-async-paginate';
-import CarService from '@/services/CarService';
-import ComponentsDragndropGrid from './ComponentsDragndropGrid.jsx';
-import { io } from 'socket.io-client';
-import CarTagService from '@/services/CarTagService';
+import SpecificationService from '@/services/SpecificationService';
+import FeatureService from '@/services/FeatureService';
+
+import ComponentsDragndropGrid from './ComponentsDragndropGrid';
 import BrochureUpload from './BrochureUpload';
-import Swal from 'sweetalert2';
+import { formatCurrency } from '@/utils/formatCurrency';
+
+// -------------------------
+// Interfaces
+// -------------------------
+interface SpecificationValue {
+    value: string | number;
+    label: string;
+}
 
 interface Specification {
     id: number;
     name: string;
     key: string;
-    values: { value: string; label: string }[];
+    mandatory?: boolean;
+    values: SpecificationValue[];
+}
+
+interface FeatureValue {
+    id: number;
+    name: string;
+    slug?: string;
 }
 
 interface Feature {
     id: number;
     name: string;
-    key: string;
-    values: { id: number; name: string; slug: string }[];
+    mandatory?: boolean;
+    values: FeatureValue[];
 }
 
-interface Image {
+export interface CarImage {
     fileId: string;
-    type: string;
-    order: number;
+    thumbnailPath?: string;
+    type?: string; // optional
+    order?: number;
 }
 
+export interface UploadedFile {
+    id: string;
+    originalPath?: string;
+    filename?: string;
+    // other fields as needed
+}
 
 interface Tag {
     id: number;
     name: string;
 }
 
+interface FormDataType {
+    id?: number; // for update
+    stockId: string;
+    brandId: string | number | null;
+    modelId: string | number | null;
+    trimId: string | number | null;
+    year: string | number | null;
+    price: string | number;
+    exportPrice?: string | number; // if you have an export price
+    usdPrice?: string | number;    // or rename as needed
+    description: string;
+    engineSize: string;
+    horsepower: string;
+    featured: boolean;
+    premium: boolean;
+    tags: number[];
+    specifications: Record<string, string | number>;
+    features: Record<number, string[]>;
+    images?: CarImage[];
+    brochureId?: string | null;
+    status?: string; // if you need status
+}
 
+// Initialize socket using the correct URL from your env variable
 const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
 
-const UpdateCarComponent = ({ carId }: { carId: number }) => {
+interface UpdateCarProps {
+    carId: number;
+}
+
+const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
     const dispatch: AppDispatch = useDispatch();
 
+    // -------------------------
     // Redux states
+    // -------------------------
     const currentStep = useSelector((state: IRootState) => state.form.currentStep);
-    const formData = useSelector((state: IRootState) => state.form.formData);
-    const images = useSelector((state: IRootState) => state.form.images);
-    const brochureFile = useSelector((state: IRootState) => state.form.brochureFile);
+    const formData = useSelector((state: IRootState) => state.form.formData) as FormDataType;
+    const images = useSelector((state: IRootState) => state.form.images) as CarImage[];
+    const brochureFile = useSelector((state: IRootState) => state.form.brochureFile) as UploadedFile | null;
 
+    // -------------------------
     // Local states
+    // -------------------------
     const [exchangeRate, setExchangeRate] = useState<number | null>(null);
     const [selectedBrand, setSelectedBrand] = useState<{ value: number; label: string } | null>(null);
     const [selectedModel, setSelectedModel] = useState<{ value: number; label: string } | null>(null);
     const [selectedTrim, setSelectedTrim] = useState<{ value: number; label: string } | null>(null);
     const [selectedYear, setSelectedYear] = useState<{ value: number; label: string } | null>(null);
+
     const [tags, setTags] = useState<Tag[]>([]);
     const [specifications, setSpecifications] = useState<Specification[]>([]);
-    const [selectedSpecificationValues, setSelectedSpecificationValues] = useState<Record<string, string | null>>({});
     const [features, setFeatures] = useState<Feature[]>([]);
-    const [selectedFeatureValues, setSelectedFeatureValues] = useState<Record<number, number[]>>({});
     const [loading, setLoading] = useState<boolean>(false);
 
-    // Disconnect the socket when the component unmounts
+    // If you want to display images in a Lightbox for preview (optional)
+    const [openLightbox, setOpenLightbox] = useState<boolean>(false);
+    const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+    const [step1Valid, setStep1Valid] = useState<boolean>(true);
+    const [step2Valid, setStep2Valid] = useState<boolean>(true);
+
+    // -------------------------
+    // Socket Cleanup
+    // -------------------------
     useEffect(() => {
         return () => {
             socket.disconnect();
         };
     }, []);
 
-    // -------------------------------
-    // Fetching: Tags
-    // -------------------------------
+    // -------------------------
+    // Fetch Tags
+    // -------------------------
     useEffect(() => {
         const fetchTags = async () => {
             try {
@@ -101,139 +173,9 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
         fetchTags();
     }, []);
 
-
-    const preloadCarData = async (carId: number) => {
-        try {
-            const response = await CarService.getCarById(carId);
-            console.log('Raw response:', response); // Debugging
-
-            if (response) {
-                const data = response;
-                console.log('Response data:', data); // Debugging
-
-                const transformedData = {
-                    stockId: data.stockId || '',
-                    description: data.description || '',
-                    status: data.status || 'draft',
-                    featured: data.featured || false,
-                    premium: data.premium || false,
-                    engineSize: data.engineSize || null,
-                    horsepower: data.horsepower || null,
-                    price: data.CarPrices[0]?.price,
-                    exportPrice: data.CarPrices[1]?.price,
-                    features: data.FeatureValues?.map((feature: { id: number }) => ({
-                        featureValueId: feature.id,
-                    })) || [],
-
-                    images: data.CarImages?.map((image: { fileId: string; type: string; order: number }) => ({
-                        fileId: image.fileId,
-                        type: image.type,
-                        order: image.order,
-                    })) || [],
-
-                    tags: data.Tags?.map((tag: { id: number }) => tag.id) || [],
-
-                };
-
-                console.log('Transformed Data:', transformedData);
-
-                // Dispatch to Redux
-                dispatch(setFormData(transformedData));
-
-                // Push CarImages data into Redux `images` state
-                const transformedImages = data.CarImages?.map((image: { fileId: string; type: string; order: number; id?: number; FileSystem?: { thumbnailPath?: string; path?: string } }) => ({
-                    fileId: image.fileId,
-                    type: image.type,
-                    order: image.order,
-                    id: image.id, // Include ID if needed
-                    thumbnailPath: image.FileSystem?.thumbnailPath || image.FileSystem?.path, // Add thumbnailPath or path
-                })) || [];
-
-
-                dispatch(setImages(transformedImages)); // Push to Redux
-                dispatch(setBrochure(data.brochureFile)); // Push to Redux
-
-                // Set the dropdown states
-                setSelectedSpecificationValues(
-                    response.SpecificationValues?.reduce(
-                        (acc: Record<string, string>, spec: { Specification: { key: string }; id: string }) => {
-                            acc[spec.Specification.key] = spec.id; // Use key from Specification and id as string
-                            return acc;
-                        },
-                        {} as Record<string, string> // Initialize the accumulator as a Record<string, string>
-                    )
-                );
-
-                setSelectedFeatureValues(
-                    response.FeatureValues?.reduce(
-                        (acc: Record<number, number[]>, featureValue: { Feature: { id: number }; id: number }) => {
-                            const featureId = featureValue.Feature.id; // Get the Feature ID
-                            if (!acc[featureId]) {
-                                acc[featureId] = []; // Initialize an array for this Feature ID
-                            }
-                            acc[featureId].push(featureValue.id); // Add the feature value ID to the array
-                            return acc;
-                        },
-                        {} as Record<number, number[]> // Initialize the accumulator as a Record<number, number[]>
-                    )
-                );
-
-
-
-                setSelectedBrand({
-                    value: response.Brand.id,
-                    label: response.Brand.name,
-                });
-
-
-                setSelectedModel({
-                    value: response.CarModel.id,
-                    label: response.CarModel.name,
-                });
-
-
-                setSelectedTrim({
-                    value: response.Trim.id,
-                    label: response.Trim.name,
-                });
-
-                setSelectedYear({
-                    value: response.Year.id,
-                    label: response.Year.year,
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching car data:', error);
-        }
-    };
-
-
-    useEffect(() => {
-        console.log('Redux formData:', formData); // Debug formData
-    }, [formData]);
-
-
-    useEffect(() => {
-        if (carId) {
-            console.log('Calling preloadCarData with carId:', carId);
-            preloadCarData(carId);
-        } else {
-            console.log('carId is not provided or is null');
-        }
-    }, [carId]);
-
-
-
-
-    const handleImagesUpdate = (updatedImages: Image[]) => {
-        if (JSON.stringify(images) !== JSON.stringify(updatedImages)) {
-            dispatch(setImages(updatedImages)); // Update Redux with the new images only if they change
-        }
-    };
-
-
-
-
+    // -------------------------
+    // Reusable fetcher for AsyncPaginate
+    // -------------------------
     const fetchData = async (
         serviceFunction: (params: Record<string, any>) => Promise<any>,
         searchQuery = '',
@@ -246,6 +188,8 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                 page: additional.page,
                 limit: 10,
                 status: 'published',
+                sortBy: 'name',
+                order: 'asc',
                 ...additionalParams,
             };
 
@@ -254,20 +198,16 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
             }
 
             const response = await serviceFunction(params);
-
             const newOptions = response.data.map((item: any) => ({
                 value: item.id || item.year,
                 label: item.name || item.year,
             }));
 
             const hasMore = response.pagination.currentPage < response.pagination.totalPages;
-
             return {
                 options: newOptions,
                 hasMore,
-                additional: {
-                    page: additional.page + 1,
-                },
+                additional: { page: additional.page + 1 },
             };
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -275,278 +215,236 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
         }
     };
 
-    // Fetch brands with additional parameter
+    // AsyncPaginate loaders
     const fetchBrands = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
-        return fetchData(GeBrandDetails.listBrand, searchQuery, loadedOptions, additional, { hasModels: true });
+        return fetchData(GeBrandDetails.listBrand, searchQuery, loadedOptions, additional, {
+            hasModels: true,
+        });
     };
-
-    // Fetch models with additional parameter
     const fetchModels = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
-        return fetchData(
-            CarModelService.listCarModel,
-            searchQuery,
-            loadedOptions,
-            additional,
-            { brandId: selectedBrand?.value || undefined } // Use `undefined` if `selectedBrand` is null
-        );
+        return fetchData(CarModelService.listCarModel, searchQuery, loadedOptions, additional, {
+            brandId: selectedBrand?.value || undefined,
+        });
     };
-
-
-    // Fetch trims with additional parameter
     const fetchTrims = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
-        return fetchData(TrimService.listTrim, searchQuery, loadedOptions, additional, { modelId: selectedModel?.value });
+        return fetchData(TrimService.listTrim, searchQuery, loadedOptions, additional, {
+            modelId: selectedModel?.value,
+        });
     };
-
-    // Fetch years without additional parameters
     const fetchYears = async (searchQuery = '', loadedOptions = [], additional = { page: 1 }) => {
         return fetchData(YearService.listYear, searchQuery, loadedOptions, additional);
     };
 
-
+    // -------------------------
+    // Fetch Exchange Rate
+    // -------------------------
     useEffect(() => {
-        // Fetch the current exchange rate of AED to USD
         const fetchExchangeRate = async () => {
             try {
                 const response = await fetch('https://api.exchangerate-api.com/v4/latest/AED');
                 const data = await response.json();
-                setExchangeRate(data.rates.USD); // Extract the USD rate
+                setExchangeRate(data.rates.USD);
             } catch (error) {
                 console.error('Error fetching exchange rate:', error);
             }
         };
-
         fetchExchangeRate();
     }, []);
 
-
-    // Default values for the fields
-    const defaultValues = {
-        stockId: '',
-        make: '',
-        model: '',
-        trim: '',
-        year: '',
-        price: '',
-        exportPrice: '',
-        description: '',
-        engineSize: '',
-        horsepower: '',
-        featured: false,
-        premium: false,
-        tags: []
-    };
-
-    // Validation schema for the first step
-    const validationSchema = Yup.object({
-        // stockId: Yup.string(), // Optional field
-        // make: Yup.string().required('The Make field is required'),
-        // model: Yup.string().required('The Model field is required'),
-        // trim: Yup.string().required('The Trim field is required'),
-        // year: Yup.string().required('The Year field is required'),
-        price: Yup.number()
-            .min(1000, 'Local price cannot be less than 1000')
-            .required('The Price field is required'),
-        exportPrice: Yup.number(), // Optional field
-        // description: Yup.string().required('The Description field is required'),
-        // engineSize: Yup.string().required('The Engine Size field is required'),
-        // horsepower: Yup.string().required('The Horsepower field is required'),
-        // featured: Yup.boolean(),
-        // premium: Yup.boolean(),
-    });
-
-
-
-    const constructStep1Payload = (values: any) => {
-        return {
-            stockId: values.stockId || null,
-            description: values.description || "",
-            status: "published",
-            featured: values.featured || false, // Use toggle value
-            premium: values.premium || false, // Use toggle value
-            brandId: selectedBrand?.value || null,
-            modelId: selectedModel?.value || null,
-            trimId: selectedTrim?.value || null,
-            yearId: selectedYear?.value || null,
-            engineSize: parseFloat(values.engineSize) || null,
-            horsepower: parseInt(values.horsepower) || null,
-            prices: [
-                {
-                    currency: "AED",
-                    amount: parseFloat(values.price),
-                },
-                {
-                    currency: "USD",
-                    amount: parseFloat(values.exportPrice),
-                },
-            ],
-            specifications: specifications
-                .map((spec) => ({
-                    specificationValueId: selectedSpecificationValues[spec.key],
-                }))
-                .filter((spec) => spec.specificationValueId),
-            features: Object.entries(selectedFeatureValues).flatMap(([featureId, valueIds]) =>
-                valueIds.map((valueId) => ({
-                    featureValueId: valueId,
-                }))
-            ),
-            images: images.map((img) => ({
-                fileId: img.fileId,
-                type: img.type,
-                order: img.order,
-            })),
-            // Use tags from the form values
-            tags: values.tags,
-            brochureId: brochureFile?.id
-        };
-    };
-
-
-
-
-    const handleNext = (values: any) => {
-        const payload = constructStep1Payload(values);
-
-        // Log the payload
-        console.log("Step Payload:", payload);
-
-        // Save the payload to Redux
-        dispatch(setFormData(payload));
-
-        // Move to the next step
-        dispatch(setStep(currentStep + 1));
-
-        // Log the next step
-        console.log(`Moved to Step: ${currentStep + 1}`);
-    };
-
-
-    const handleBack = () => {
-        if (currentStep > 1) {
-            dispatch(setStep(currentStep - 1)); // Move to the previous step
-            console.log('Moved Back to Step:', currentStep - 1); // Log the new step after moving back
-        }
-    };
+    // -------------------------
+    // Fetch Specifications
+    // -------------------------
     useEffect(() => {
         const fetchSpecificationsWithValues = async () => {
             try {
                 setLoading(true);
+                const specsRes = await SpecificationService.listSpecifications({ limit: 0 });
+                const specsData = specsRes.data;
 
-                // Fetch all specifications without pagination
-                const specificationsResponse = await SpecificationService.listSpecifications({ limit: 0 }); // Set limit to 0 to fetch all specifications
-                const specifications = specificationsResponse.data;
-
-                // Fetch values for each specification individually
-                const specificationsWithValues = await Promise.all(
-                    specifications.map(async (spec: any) => {
-                        const response = await SpecificationService.listSpecificationValues({
+                const specsWithValues = await Promise.all(
+                    specsData.map(async (spec: any) => {
+                        const valuesRes = await SpecificationService.listSpecificationValues({
                             specificationId: spec.id,
-                            limit: 0, // Fetch all values for this specification
+                            limit: 0,
                         });
-                        const values = response.data.map((value: any) => ({
-                            value: value.id,
-                            label: value.name,
+                        const values = valuesRes.data.map((v: any) => ({
+                            value: v.id,
+                            label: v.name,
                         }));
-
-                        return {
-                            ...spec,
-                            values, // Only values related to this specification
-                        };
+                        return { ...spec, values };
                     })
                 );
 
-                setSpecifications(specificationsWithValues); // Set all fetched specifications with their values
+                setSpecifications(specsWithValues);
                 setLoading(false);
             } catch (error) {
-                console.error('Error fetching specifications and values:', error);
+                console.error('Error fetching specifications:', error);
                 setLoading(false);
             }
         };
-
         fetchSpecificationsWithValues();
     }, []);
 
-    const handleSpecificationChange = (key: string, value: any) => {
-        setSelectedSpecificationValues((prevValues) => ({
-            ...prevValues,
-            [key]: value?.value || null,
-        }));
-    };
-
-
+    // -------------------------
+    // Fetch Features
+    // -------------------------
     useEffect(() => {
         const fetchFeaturesWithValues = async () => {
             try {
-                // Fetch all features without pagination
-                const featureResponse = await FeatureService.listFeatures({ limit: 0 }); // Set limit to 0 to fetch all features
-                const features = featureResponse.data;
+                const featuresRes = await FeatureService.listFeatures({ limit: 0 });
+                const featuresData = featuresRes.data;
 
-                // Fetch feature values for each feature
                 const featuresWithValues = await Promise.all(
-                    features.map(async (feature: any) => {
-                        const valuesResponse = await FeatureService.listFeatureValues({
+                    featuresData.map(async (feature: any) => {
+                        const valuesRes = await FeatureService.listFeatureValues({
                             featureId: feature.id,
-                            limit: 0, // Fetch all values for this feature
+                            limit: 0,
                         });
-                        const values = valuesResponse.data.map((value: any) => ({
-                            id: value.id,
-                            name: value.name,
-                            slug: value.slug,
+                        const values = valuesRes.data.map((v: any) => ({
+                            id: v.id,
+                            name: v.name,
+                            slug: v.slug,
                         }));
                         return { ...feature, values };
                     })
                 );
 
-                setFeatures(featuresWithValues); // Set all fetched features with their values
+                setFeatures(featuresWithValues);
             } catch (error) {
-                console.error('Error fetching features and values:', error);
+                console.error('Error fetching features:', error);
             }
         };
-
         fetchFeaturesWithValues();
     }, []);
 
-
-    const handleFeatureCheckboxChange = (featureId: number, valueId: number) => {
-        setSelectedFeatureValues((prevSelected) => {
-            const currentValues = prevSelected[featureId] || [];
-            const isSelected = currentValues.includes(valueId);
-
-            return {
-                ...prevSelected,
-                [featureId]: isSelected
-                    ? currentValues.filter((id) => id !== valueId) // Remove if already selected
-                    : [...currentValues, valueId], // Add if not selected
-            };
-        });
-    };
-
-    const handlePublish = async () => {
+    // -------------------------
+    // Preload Car Data
+    // -------------------------
+    const preloadCarData = async (carId: number) => {
         try {
-            console.log('Publishing Payload:', formData); // Debug the final payload
+            const data = await CarService.getCarByIdOrSlug(carId);
+            if (!data) return;
 
-            // Call the `addCar` service directly with formData
-            const response = await CarService.addCar(formData);
+            // Transform data into your local form shape
+            const initialFormData: FormDataType = {
+                id: carId,
+                stockId: data.stockId || '',
+                brandId: data.Brand?.id || null,
+                modelId: data.CarModel?.id || null,
+                trimId: data.Trim?.id || null,
+                year: data.Year?.id || null,
+                price: data.CarPrices?.[0]?.price || '',
+                usdPrice: data.CarPrices?.[1]?.price || '',
+                description: data.description || '',
+                engineSize: data.engineSize || '',
+                horsepower: data.horsepower || '',
+                featured: data.featured || false,
+                premium: data.premium || false,
+                tags: data.Tags?.map((t: any) => t.id) || [],
+                specifications: {}, // We'll fill below
+                features: {},       // We'll fill below
+                images: data.CarImages?.map((img: any) => ({
+                    fileId: img.fileId,
+                    thumbnailPath: img.FileSystem?.thumbnailPath || '',
+                    type: img.type,
+                    order: img.order,
+                })) || [],
+                brochureId: data.brochureFile?.id || null,
+            };
 
-            if (response) {
-                console.log('Car added successfully:', response);
-                alert('Car added successfully!');
+            // Preload specifications
+            if (data.SpecificationValues) {
+                // For each specification, we have: specValue.Specification.key, specValue.id
+                data.SpecificationValues.forEach((specVal: any) => {
+                    const specKey = specVal.Specification?.key;
+                    if (specKey) {
+                        initialFormData.specifications[specKey] = specVal.id;
+                    }
+                });
+            }
 
-                // Clear the formData in Redux
-                dispatch(setFormData({})); // Reset the formData to an empty object or default values
-                dispatch(setStep(1)); // Reset to the first step or redirect the user
-            } else {
-                console.error('Failed to add car.');
-                alert('Failed to add the car. Please try again.');
+            // Preload features
+            if (data.FeatureValues) {
+                // For each featureValue: featureValue.Feature.id
+                // We want an array of featureValue IDs under that Feature ID
+                const featureMap: Record<number, string[]> = {};
+                data.FeatureValues.forEach((fv: any) => {
+                    const fId = fv.Feature?.id;
+                    if (!featureMap[fId]) featureMap[fId] = [];
+                    featureMap[fId].push(String(fv.id));
+                });
+                initialFormData.features = featureMap;
+            }
+
+            // Dispatch to Redux
+            dispatch(setFormData(initialFormData));
+
+            // Also set selectedBrand, selectedModel, etc. for the dropdowns
+            if (data.Brand) {
+                setSelectedBrand({ value: data.Brand.id, label: data.Brand.name });
+            }
+            if (data.CarModel) {
+                setSelectedModel({ value: data.CarModel.id, label: data.CarModel.name });
+            }
+            if (data.Trim) {
+                setSelectedTrim({ value: data.Trim.id, label: data.Trim.name });
+            }
+            if (data.Year) {
+                setSelectedYear({ value: data.Year.id, label: data.Year.year });
+            }
+
+            // Images
+            if (initialFormData.images) {
+                dispatch(setImages(initialFormData.images));
+            }
+
+            // Brochure
+            if (data.brochureFile) {
+                dispatch(setBrochure(data.brochureFile));
             }
         } catch (error) {
-            console.error('Error publishing car:', error);
-            alert('An error occurred while publishing the car.');
+            console.error('Error fetching car data:', error);
         }
     };
 
-    // ----------------------
-    // Render progress HTML for SweetAlert2
-    // ----------------------
+    useEffect(() => {
+        if (carId) {
+            preloadCarData(carId);
+        }
+    }, [carId]);
+
+    // -------------------------
+    // Update Logic
+    // -------------------------
+    const handleImagesUpdate = (updatedImages: CarImage[]) => {
+        if (JSON.stringify(images) !== JSON.stringify(updatedImages)) {
+            dispatch(setImages(updatedImages));
+        }
+    };
+
+    const validationSchema = Yup.object({
+        stockId: Yup.string(),
+        brandId: Yup.string().required('Brand is required'),
+        modelId: Yup.string().required('Model is required'),
+        trimId: Yup.string().required('Trim is required'),
+        year: Yup.string().required('Year is required'),
+        price: Yup.number().min(1000, 'Price cannot be less than 1000').required('Price is required'),
+        usdPrice: Yup.number().min(1000, 'USD price cannot be less than 1000'),
+        // Add other fields as needed
+    });
+
+    const handleNext = (values: FormDataType) => {
+        dispatch(setFormData(values));
+        dispatch(setStep(currentStep + 1));
+    };
+
+    const handleBack = () => {
+        if (currentStep > 1) {
+            dispatch(setStep(currentStep - 1));
+        }
+    };
+
+    // If you want a final update function with SweetAlert and socket progress
     const renderProgressHtml = (progress: number, message: string) => `
     <div class="mb-5 space-y-5">
       <div class="w-full h-4 bg-gray-200 rounded-full">
@@ -556,9 +454,56 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
     </div>
   `;
 
+    // -------------------------
+    // Construct Final Payload
+    // -------------------------
+    const constructFinalPayload = (rawValues: FormDataType) => {
+        return {
+            id:carId,
+            stockId: rawValues.stockId || null,
+            description: rawValues.description || '',
+            status: 'published',
+            featured: rawValues.featured || false,
+            premium: rawValues.premium || false,
+            brandId: selectedBrand?.value || null,
+            modelId: selectedModel?.value || null,
+            trimId: selectedTrim?.value || null,
+            yearId: selectedYear?.value || null,
+            engineSize: rawValues.engineSize ? parseFloat(rawValues.engineSize) : null,
+            horsepower: rawValues.horsepower ? parseInt(rawValues.horsepower) : null,
+            prices: [
+                {
+                    currency: 'AED',
+                    amount: rawValues.price ? parseFloat(String(rawValues.price)) : 0,
+                },
+                {
+                    currency: 'USD',
+                    amount: rawValues.usdPrice ? parseFloat(String(rawValues.usdPrice)) : 0,
+                },
+            ],
+            specifications: Object.entries(rawValues.specifications)
+                .filter(([_, val]) => val !== '')
+                .map(([_, specValueId]) => ({
+                    specificationValueId: specValueId,
+                })),
+            features: Object.entries(rawValues.features).flatMap(([featureId, arr]) => {
+                return (arr as string[]).map((valueId) => ({
+                    featureValueId: Number(valueId),
+                }));
+            }),
+            images: images.map((img) => ({
+                fileId: img.fileId,
+                type: img.type,
+                order: img.order,
+            })),
+            tags: rawValues.tags,
+            brochureId: brochureFile?.id,
+        };
+    };
+
     const handleUpdate = async () => {
         try {
-            console.log('Updating Payload:', formData); // Debug the final payload
+            // Show initial progress popup
             Swal.fire({
                 title: 'Updating Car...',
                 html: renderProgressHtml(0, 'Waiting for progress updates...'),
@@ -568,8 +513,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                 },
             });
 
-
-            // Listen to socket progress events and update Swal accordingly
+            // Listen to socket progress events
             socket.on('progress', (data: any) => {
                 const { progress, message } = data;
                 Swal.update({
@@ -577,18 +521,18 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                 });
             });
 
-            // Force a 2-second delay if needed (optional)
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            // Force a small delay if desired
+            await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            // Now perform the API call
-            const payload = constructStep1Payload(formData);
-            console.log('Publishing Payload:', payload);
+            // Call updateCar service with the final formData
+            const payload = constructFinalPayload(formData);
 
-            // Call the `updateCar` service
-            const response = await CarService.updateCar(formData);
-            // Unsubscribe from socket progress events once done
+            console.log(payload,"payload");
+            
+            const response = await CarService.updateCar(payload);
+            // Unsubscribe from socket
             socket.off('progress');
-            // Ensure progress shows 100%
+            // Show final progress
             Swal.update({
                 html: renderProgressHtml(100, 'Finalizing...'),
             });
@@ -600,7 +544,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                     text: 'Your car has been updated successfully.',
                 }).then(() => {
                     // Reset Redux state
-                    dispatch(setFormData({}));
+                    dispatch(setFormData({} as FormDataType));
                     dispatch(setStep(1));
                     // Redirect to inventory list
                     window.location.href = '/inventory/list';
@@ -613,7 +557,7 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                 });
             }
         } catch (error) {
-            console.error('Error updating the car:', error);
+            console.error('Error updating car:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -622,21 +566,70 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
         }
     };
 
+    // For Lightbox slides (optional)
+    const slides = images.map((img) => ({
+        src: `${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}/${img.thumbnailPath || ''}`,
+        title: `Image: ${img.fileId}`,
+    }));
 
+    const handleThumbnailClick = (index: number) => {
+        setCurrentIndex(index);
+        setOpenLightbox(true);
+    };
 
+    const renderImagesPreview = () => {
+        if (!images || images.length === 0) return <p>No images uploaded.</p>;
+        return (
+            <div className="flex flex-wrap gap-4 mt-2">
+                {images.map((img, index) => (
+                    <div
+                        key={index}
+                        className="w-24 h-24 bg-gray-100 rounded overflow-hidden cursor-pointer"
+                        onClick={() => handleThumbnailClick(index)}
+                    >
+                        <img
+                            src={`${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}/${img.thumbnailPath || ''}`}
+                            alt={`Car Image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const renderBrochurePreview = (): JSX.Element => {
+        if (!brochureFile) return <p>No brochure uploaded.</p>;
+        const pdfUrl = `${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}${brochureFile.originalPath}`;
+        return (
+            <div className="mt-2">
+                <p className="mb-2">
+                    <strong>Filename:</strong> {brochureFile.filename || 'Car Brochure'}
+                </p>
+                <div style={{ width: '100%', height: '600px', border: '1px solid #ccc' }}>
+                    <iframe
+                        src={`${pdfUrl}#toolbar=0`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none' }}
+                    />
+                </div>
+            </div>
+        );
+    };
+
+    // If still loading specs
     if (loading) {
         return <p>Loading specifications...</p>;
     }
 
-
-
     return (
         <div className="flex flex-col gap-2.5 xl:flex-row">
-            <div className="panel flex-1 px-0 pb-6 ltr:xl:mr-6 rtl:xl:ml-6 pt-0 ">
-                <SectionHeader title="Add Car Details" />
+            <div className="panel flex-1 px-0 pb-6 ltr:xl:mr-6 rtl:xl:ml-6 pt-0">
+                <SectionHeader title="Update Car Details" />
                 <div className="mb-5">
                     <div className="inline-block w-full">
-                        {/* Tab Indicators */}
+                        {/* Stepper / Tabs */}
                         <div className="relative z-[1]">
                             <div
                                 className={`${currentStep === 1
@@ -646,56 +639,54 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                                         : currentStep === 3
                                             ? 'w-[81%]'
                                             : ''
-                                    } absolute top-[30px] -z-[1] m-auto h-1 w-[15%] bg-primary transition-[width] ltr:left-0 rtl:right-0`}
+                                    } absolute top-[30px] -z-[1] m-auto h-1 bg-primary transition-[width] ltr:left-0 rtl:right-0`}
                             ></div>
                             <ul className="mb-5 grid grid-cols-3">
-                                {/* Step 1 Button */}
+                                {/* Step 1 */}
                                 <li className="mx-auto">
                                     <button
                                         type="button"
-                                        onClick={() => dispatch(setStep(1))} // Update the step to 1
+                                        onClick={() => dispatch(setStep(1))}
                                         className={`${currentStep === 1 ? '!border-primary !bg-primary text-white' : ''
                                             } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
                                     >
                                         <IconMenuForms className="h-7 w-7" />
                                     </button>
-                                    <span
-                                        className={`${currentStep === 1 ? 'text-primary ' : ''}text-center mt-2 block`}
-                                    >
+                                    <span className={`${currentStep === 1 ? 'text-primary ' : ''}text-center mt-2 block`}>
                                         Car Details
                                     </span>
                                 </li>
 
-                                {/* Step 2 Button */}
+                                {/* Step 2 */}
                                 <li className="mx-auto">
                                     <button
                                         type="button"
-                                        onClick={() => dispatch(setStep(2))} // Update the step to 2
+                                        onClick={() => step1Valid && dispatch(setStep(2))} // <--- only allow if step1Valid
+                                        disabled={!step1Valid}                            // <--- disable if step1Valid is false
                                         className={`${currentStep === 2 ? '!border-primary !bg-primary text-white' : ''
-                                            } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
+                                            } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]
+        ${!step1Valid ? 'cursor-not-allowed ' : ''}`}
                                     >
                                         <IconGallery className="h-7 w-7" />
                                     </button>
-                                    <span
-                                        className={`${currentStep === 2 ? 'text-primary ' : ''}text-center mt-2 block`}
-                                    >
-                                        Photos
+                                    <span className={`${currentStep === 2 ? 'text-primary ' : ''}text-center mt-2 block`}>
+                                        Photos &amp; Assets
                                     </span>
                                 </li>
 
-                                {/* Step 3 Button */}
+                                {/* Step 3 */}
                                 <li className="mx-auto">
                                     <button
                                         type="button"
-                                        onClick={() => dispatch(setStep(3))} // Update the step to 3
+                                        onClick={() => step1Valid && step2Valid && dispatch(setStep(3))} // only if prior steps are valid
+                                        disabled={!step1Valid || !step2Valid}
                                         className={`${currentStep === 3 ? '!border-primary !bg-primary text-white' : ''
-                                            } flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-[#f3f2ee] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]`}
+                                            } flex h-16 w-16 items-center justify-center rounded-full border-[3px] bg-white dark:border-[#1b2e4b] dark:bg-[#253b5c]
+        ${(!step1Valid || !step2Valid) ? 'cursor-not-allowed ' : ''}`}
                                     >
                                         <IconThumbUp className="h-7 w-7" />
                                     </button>
-                                    <span
-                                        className={`${currentStep === 3 ? 'text-primary ' : ''}text-center mt-2 block`}
-                                    >
+                                    <span className={`${currentStep === 3 ? 'text-primary ' : ''}text-center mt-2 block`}>
                                         Publish
                                     </span>
                                 </li>
@@ -703,405 +694,470 @@ const UpdateCarComponent = ({ carId }: { carId: number }) => {
                         </div>
 
 
-                        {/* Form */}
+                        {/* Steps Content */}
                         <div className="px-4 w-100">
-
-                            {currentStep === 1 && (<Formik
-                                initialValues={{
-                                    ...formData, // Use preloaded data from Redux
-                                }}
-                                validationSchema={validationSchema}
-                                onSubmit={(values) => handleNext(values)}
-                                enableReinitialize={true}
-                            >
-                                {({ values, setFieldValue, isValid, dirty, errors, submitCount, }) => (
-                                    <Form className="space-y-8 mt-2">
-                                        <div className="border rounded-[15px] px-5 pt-5 pb-3 relative">
-                                            <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
-                                                SELECT TAGS
-                                            </h2>
-                                            <Field name="tags">
-                                                {({ field, form }: any) => (
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                                        {tags.map((tag) => (
-                                                            <div key={tag.id} className="flex items-center">
-                                                                <label className="inline-flex">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        className="form-checkbox"
-                                                                        checked={(field.value || []).includes(tag.id)}
-                                                                        onChange={() => {
-                                                                            if ((field.value || []).includes(tag.id)) {
-                                                                                const newValue = (field.value || []).filter((id: number) => id !== tag.id);
-                                                                                form.setFieldValue('tags', newValue);
-                                                                            } else {
-                                                                                form.setFieldValue('tags', [...(field.value || []), tag.id]);
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                    <span className="ml-1">{tag.name}</span>
-                                                                </label>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </Field>
-
-                                        </div>
-
-
-                                        <div className='border rounded-[15px] p-5 relative space-y-6 '>
-                                            <h2 className='text-lg font-bold absolute top-[-14px] bg-white px-1'>GENERAL CAR DETAILS</h2>
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                                {/* Individual Fields */}
-                                                <div>
-                                                    <label className="block font-medium mb-0">Stock ID (Optional)</label>
-                                                    <Field
-                                                        type="text"
-                                                        name="stockId"
-                                                        placeholder="Add your own ID"
-                                                        className="border border-gray-300 rounded px-3 py-2 w-full"
-                                                    />
-                                                    <ErrorMessage
-                                                        name="stockId"
-                                                        component="div"
-                                                        className="absolute text-red-500 text-sm mt-1"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label htmlFor="brandId">Select Brand</label>
-                                                    <AsyncPaginate
-                                                        loadOptions={fetchBrands}
-                                                        debounceTimeout={300}
-                                                        additional={{ page: 1 }}
-                                                        value={selectedBrand}
-                                                        onChange={(option: SingleValue<{ value: number; label: string }>) => {
-                                                            setSelectedBrand(option);
-                                                            setFieldValue('brandId', option?.value || null);
-                                                            setSelectedModel(null); // Reset dependent fields
-                                                            setSelectedTrim(null);
-                                                            setSelectedYear(null);
-                                                        }}
-                                                        placeholder="Search and select a brand"
-                                                    />
-                                                    <ErrorMessage name="brandId" component="div" className="mt-1 text-danger" />
-                                                </div>
-
-
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-                                                {/* Model */}
-                                                <div>
-                                                    <label htmlFor="modelId">Select Model</label>
-                                                    <AsyncPaginate
-                                                        loadOptions={fetchModels}
-                                                        debounceTimeout={300}
-                                                        additional={{ page: 1 }}
-                                                        value={selectedModel}
-                                                        onChange={(option: SingleValue<{ value: number; label: string }>) => {
-                                                            setSelectedModel(option);
-                                                            setFieldValue('modelId', option?.value || null);
-                                                            setSelectedTrim(null); // Reset dependent fields
-                                                            setSelectedYear(null);
-                                                        }}
-                                                        placeholder="Search and select a model"
-                                                        isDisabled={!selectedBrand}
-                                                    />
-                                                    <ErrorMessage name="modelId" component="div" className="mt-1 text-danger" />
-                                                </div>
-
-                                                <div>
-                                                    <label htmlFor="trimId">Select Trim</label>
-                                                    <AsyncPaginate
-                                                        loadOptions={fetchTrims}
-                                                        debounceTimeout={300}
-                                                        additional={{ page: 1 }}
-                                                        value={selectedTrim}
-                                                        onChange={(option: SingleValue<{ value: number; label: string }>) => {
-                                                            setSelectedTrim(option);
-                                                            setFieldValue('trimId', option?.value || null);
-                                                            setSelectedYear(null); // Reset dependent fields
-                                                        }}
-                                                        placeholder="Search and select a trim"
-                                                        isDisabled={!selectedModel}
-                                                    />
-                                                    <ErrorMessage name="trimId" component="div" className="mt-1 text-danger" />
-
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-                                                {/* Year */}
-                                                <div>
-                                                    <label htmlFor="year">Select Year</label>
-                                                    <AsyncPaginate
-                                                        loadOptions={fetchYears}
-                                                        debounceTimeout={300}
-                                                        additional={{ page: 1 }}
-                                                        value={selectedYear}
-                                                        onChange={(option: SingleValue<{ value: number; label: string }>) => {
-                                                            setSelectedYear(option);
-                                                            setFieldValue('year', option?.value || null);
-                                                        }}
-                                                        placeholder="Search and select a year"
-                                                    />
-                                                    <ErrorMessage name="year" component="div" className="mt-1 text-danger" />
-                                                </div>
-
-
-                                            </div>
-                                        </div>
-
-                                        <div className='border rounded-[15px] p-5 relative '>
-                                            <h2 className='text-lg font-bold absolute top-[-14px] bg-white px-1'>CAR PRICE</h2>
-
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                                <div>
-                                                    <label className="block font-medium mb-0">Price in AED</label>
-                                                    <Field
-                                                        type="number"
-                                                        name="price"
-                                                        placeholder="Enter price"
-                                                        className="border border-gray-300 rounded px-3 py-2 w-full"
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                                            const priceInAed = parseFloat(e.target.value);
-                                                            setFieldValue('price', priceInAed);
-                                                            if (exchangeRate) {
-                                                                setFieldValue('exportPrice', (priceInAed * exchangeRate).toFixed(2));
-                                                            }
-                                                        }}
-                                                    />
-                                                    <ErrorMessage
-                                                        name="price"
-                                                        component="div"
-                                                        className="absolute text-red-500 text-sm mt-1"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block font-medium mb-0">Price in USD</label>
-                                                    <Field
-                                                        type="number"
-                                                        name="exportPrice"
-                                                        placeholder="Calculated price in USD"
-                                                        className="border border-gray-300 rounded px-3 py-2 w-full"
-                                                        disabled
-                                                    />
-                                                    <ErrorMessage
-                                                        name="exportPrice"
-                                                        component="div"
-                                                        className="absolute text-red-500 text-sm mt-1"
-                                                    />
-                                                </div>
+                            {/* STEP 1: Car Details */}
+                            {currentStep === 1 && (
+                                <Formik
+                                    initialValues={{ ...formData }}
+                                    validationSchema={validationSchema}
+                                    onSubmit={(values, { setSubmitting }) => {
+                                        console.log('No validation errors; proceed to next step');
+                                        setStep1Valid(true);
+                                        handleNext(values);
+                                        setSubmitting(false);
+                                    }}
+                                    enableReinitialize={true}
+                                >
+                                    {({ values, setFieldValue, errors, submitCount }) => (
+                                        <Form className="space-y-8 mt-2">
+                                            {/* Tags */}
+                                            <div className="border rounded-[15px] px-5 pt-5 pb-3 relative">
+                                                <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                    SELECT TAGS
+                                                </h2>
+                                                <Field name="tags">
+                                                    {({ field, form }: any) => (
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                                            {tags.map((tag) => (
+                                                                <div key={tag.id} className="flex items-center">
+                                                                    <label className="inline-flex">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="form-checkbox"
+                                                                            checked={field.value.includes(tag.id)}
+                                                                            onChange={() => {
+                                                                                if (field.value.includes(tag.id)) {
+                                                                                    const newValue = field.value.filter(
+                                                                                        (tId: number) => tId !== tag.id
+                                                                                    );
+                                                                                    form.setFieldValue('tags', newValue);
+                                                                                } else {
+                                                                                    form.setFieldValue('tags', [...field.value, tag.id]);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <span className="ml-1">{tag.name}</span>
+                                                                    </label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </Field>
                                             </div>
 
-
-                                        </div>
-                                        <div className='border rounded-[15px] p-5 relative '>
-                                            <h2 className='text-lg font-bold absolute top-[-14px] bg-white px-1'>SPECIFICATIONS</h2>
-
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                                                {specifications.map((spec) => (
-                                                    <div key={spec.id}>
-                                                        <label className="block font-medium mb-1">{spec.name}</label>
-                                                        <Select
-                                                            options={spec.values}
-                                                            placeholder={`Select ${spec.name}`}
-                                                            onChange={(value: { value: string; label: string } | null) => handleSpecificationChange(spec.key, value)}
-                                                            value={spec.values.find((option) => option.value === selectedSpecificationValues[spec.key]) || null}
-                                                            isClearable
-                                                            className="border border-gray-300 rounded"
+                                            {/* Car Details */}
+                                            <div className="border rounded-[15px] p-5 relative space-y-6">
+                                                <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                    GENERAL CAR DETAILS
+                                                </h2>
+                                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                                    <div>
+                                                        <label className="block font-medium">Stock ID</label>
+                                                        <Field
+                                                            type="text"
+                                                            name="stockId"
+                                                            placeholder="Car Stock ID"
+                                                            className="border border-gray-300 rounded px-3 py-2 w-full"
                                                         />
-
+                                                        <ErrorMessage
+                                                            name="stockId"
+                                                            component="div"
+                                                            className="absolute text-red-500 text-sm mt-1"
+                                                        />
                                                     </div>
-                                                ))}
-                                                <div>
-                                                    <label className="block font-medium mb-1">Engine Size (Liters)</label>
-                                                    <Field
-                                                        type="text"
-                                                        name="engineSize"
-                                                        placeholder="Enter engine size"
-                                                        className="border border-gray-300 rounded px-3 py-2 w-full"
-                                                    />
-                                                    <ErrorMessage
-                                                        name="engineSize"
-                                                        component="div"
-                                                        className="absolute text-red-500 text-sm mt-1"
-                                                    />
+                                                    <div>
+                                                        <label htmlFor="brandId">Select Brand</label>
+                                                        <AsyncPaginate
+                                                            loadOptions={fetchBrands}
+                                                            debounceTimeout={300}
+                                                            additional={{ page: 1 }}
+                                                            value={selectedBrand}
+                                                            onChange={(option: SingleValue<{ value: number; label: string }>) => {
+                                                                setSelectedBrand(option);
+                                                                setFieldValue('brandId', option?.value || null);
+                                                                // reset model, trim, year
+                                                                setSelectedModel(null);
+                                                                setSelectedTrim(null);
+                                                                setSelectedYear(null);
+                                                            }}
+                                                            placeholder="Search and select a brand"
+                                                        />
+                                                        <ErrorMessage name="brandId" component="div" className="mt-1 text-danger" />
+                                                    </div>
                                                 </div>
-
-                                                {/* Horsepower */}
-                                                <div>
-                                                    <label className="block font-medium mb-1">Horsepower</label>
-                                                    <Field
-                                                        type="text"
-                                                        name="horsepower"
-                                                        placeholder="Enter horsepower"
-                                                        className="border border-gray-300 rounded px-3 py-2 w-full"
-                                                    />
-                                                    <ErrorMessage
-                                                        name="horsepower"
-                                                        component="div"
-                                                        className="absolute text-red-500 text-sm mt-1"
-                                                    />
+                                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                                    <div>
+                                                        <label htmlFor="modelId">Select Model</label>
+                                                        <AsyncPaginate
+                                                            loadOptions={fetchModels}
+                                                            debounceTimeout={300}
+                                                            additional={{ page: 1 }}
+                                                            value={selectedModel}
+                                                            onChange={(option: SingleValue<{ value: number; label: string }>) => {
+                                                                setSelectedModel(option);
+                                                                setFieldValue('modelId', option?.value || null);
+                                                                setSelectedTrim(null);
+                                                                setSelectedYear(null);
+                                                            }}
+                                                            placeholder="Search and select a model"
+                                                            isDisabled={!selectedBrand}
+                                                        />
+                                                        <ErrorMessage name="modelId" component="div" className="mt-1 text-danger" />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="trimId">Select Trim</label>
+                                                        <AsyncPaginate
+                                                            loadOptions={fetchTrims}
+                                                            debounceTimeout={300}
+                                                            additional={{ page: 1 }}
+                                                            value={selectedTrim}
+                                                            onChange={(option: SingleValue<{ value: number; label: string }>) => {
+                                                                setSelectedTrim(option);
+                                                                setFieldValue('trimId', option?.value || null);
+                                                                setSelectedYear(null);
+                                                            }}
+                                                            placeholder="Search and select a trim"
+                                                            isDisabled={!selectedModel}
+                                                        />
+                                                        <ErrorMessage name="trimId" component="div" className="mt-1 text-danger" />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                                    <div>
+                                                        <label htmlFor="year">Select Year</label>
+                                                        <AsyncPaginate
+                                                            loadOptions={fetchYears}
+                                                            debounceTimeout={300}
+                                                            additional={{ page: 1 }}
+                                                            value={selectedYear}
+                                                            onChange={(option: SingleValue<{ value: number; label: string }>) => {
+                                                                setSelectedYear(option);
+                                                                setFieldValue('year', option?.value || null);
+                                                            }}
+                                                            placeholder="Search and select a year"
+                                                        />
+                                                        <ErrorMessage name="year" component="div" className="mt-1 text-danger" />
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                        </div>
-                                        <div className='border rounded-[15px] p-5 relative '>
-                                            <h2 className='text-lg font-bold absolute top-[-14px] bg-white px-1'>DESCRIPTION</h2>
+                                            {/* PRICE */}
+                                            <div className="border rounded-[15px] p-5 relative">
+                                                <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                    CAR PRICE
+                                                </h2>
+                                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                                    <div>
+                                                        <label className="block font-medium">Price in AED</label>
+                                                        <Field
+                                                            type="text"
+                                                            name="price"
+                                                            placeholder="Enter price in AED"
+                                                            className="border border-gray-300 rounded px-3 py-2 w-full"
+                                                            value={values.price ? formatCurrency(values.price) : ''}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                const rawValue = e.target.value.replace(/,/g, '');
+                                                                if (!isNaN(Number(rawValue))) {
+                                                                    // parse or set the fieldValue
+                                                                    // you can also auto-calc USD if you want
+                                                                    setFieldValue('price', rawValue);
+                                                                    if (exchangeRate) {
+                                                                        setFieldValue(
+                                                                            'usdPrice',
+                                                                            Math.round(Number(rawValue) * exchangeRate)
+                                                                        );
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                        <ErrorMessage
+                                                            name="price"
+                                                            component="div"
+                                                            className="absolute text-red-500 text-sm mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block font-medium">Price in USD</label>
+                                                        <Field
+                                                            type="text"
+                                                            name="usdPrice"
+                                                            placeholder="Enter price in USD"
+                                                            className="border border-gray-300 rounded px-3 py-2 w-full"
+                                                            value={values.usdPrice ? formatCurrency(values.usdPrice) : ''}
+                                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                const rawValue = e.target.value.replace(/,/g, '');
+                                                                if (!isNaN(Number(rawValue))) {
+                                                                    setFieldValue('usdPrice', rawValue);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <ErrorMessage
+                                                            name="usdPrice"
+                                                            component="div"
+                                                            className="absolute text-red-500 text-sm mt-1"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                            <div className="grid grid-cols-1 gap-5 md:grid-cols-1">
-                                                <div className={submitCount ? (errors.description ? 'has-error' : 'has-success') : ''}>
+                                            {/* SPECIFICATIONS */}
+                                            <div className="border rounded-[15px] p-5 relative">
+                                                <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                    SPECIFICATIONS
+                                                </h2>
+                                                <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                                                    {specifications.map((spec) => (
+                                                        <div key={spec.id}>
+                                                            <label className="block font-medium mb-1">
+                                                                {spec.name} {spec.mandatory && <span className="text-red-500">*</span>}
+                                                            </label>
+                                                            <Field name={`specifications.${spec.key}`}>
+                                                                {({ field, form }: any) => (
+                                                                    <Select
+                                                                        options={spec.values}
+                                                                        placeholder={`Select ${spec.name}`}
+                                                                        value={
+                                                                            spec.values.find(
+                                                                                (option) => String(option.value) === String(field.value)
+                                                                            ) || null
+                                                                        }
+                                                                        onChange={(selectedOption: any) => {
+                                                                            form.setFieldValue(
+                                                                                `specifications.${spec.key}`,
+                                                                                selectedOption?.value || ''
+                                                                            );
+                                                                        }}
+                                                                        isClearable
+                                                                    />
+                                                                )}
+                                                            </Field>
+                                                        </div>
+                                                    ))}
+                                                    <div>
+                                                        <label className="block font-medium mb-1">Engine Size (Liters)</label>
+                                                        <Field
+                                                            type="text"
+                                                            name="engineSize"
+                                                            placeholder="Enter engine size"
+                                                            className="border border-gray-300 rounded px-3 py-2 w-full"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block font-medium mb-1">Horsepower</label>
+                                                        <Field
+                                                            type="text"
+                                                            name="horsepower"
+                                                            placeholder="Enter horsepower"
+                                                            className="border border-gray-300 rounded px-3 py-2 w-full"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                    <RichTextEditor
-                                                        initialValue={values.description}
-                                                        onChange={(newContent) => setFieldValue('description', newContent)}
-                                                    />
-                                                    {submitCount ? (
-                                                        typeof errors.description === 'string' ? (
+                                            {/* DESCRIPTION */}
+                                            <div className="border rounded-[15px] p-5 relative">
+                                                <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                    DESCRIPTION
+                                                </h2>
+                                                <div className="grid grid-cols-1 gap-5 md:grid-cols-1">
+                                                    <Field name="description">
+                                                        {({ field, form }: any) => (
+                                                            <RichTextEditor
+                                                                initialValue={field.value}
+                                                                onChange={(newContent) =>
+                                                                    form.setFieldValue('description', newContent)
+                                                                }
+                                                            />
+                                                        )}
+                                                    </Field>
+                                                    {submitCount &&
+                                                        (typeof errors.description === 'string' ? (
                                                             <div className="mt-1 text-danger">{errors.description}</div>
                                                         ) : (
                                                             <div className="mt-1 text-success">Looks Good!</div>
-                                                        )
-                                                    ) : null}
-
+                                                        ))}
                                                 </div>
                                             </div>
 
-
-                                        </div>
-
-                                        {features.map((feature) => (
-                                            <div key={feature.id} className="mb-5">
-                                                <div className='border rounded-[15px] p-5 relative '>
-                                                    <h2 className='text-lg font-bold absolute top-[-14px] bg-white px-1'>{feature.name}</h2>
-
-                                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                                        {feature.values.map((value) => (
-                                                            <div key={value.id} className="flex items-center">
-
-                                                                <label className="inline-flex">
-                                                                    <input
+                                            {/* FEATURES */}
+                                            {features.map((feature) => (
+                                                <div key={feature.id} className="mb-5">
+                                                    <div className="border rounded-[15px] p-5 relative">
+                                                        <h2 className="text-lg font-bold absolute top-[-14px] bg-white px-1">
+                                                            {feature.name} {feature.mandatory && <span className="text-red-500">*</span>}
+                                                        </h2>
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                            {feature.values.map((fv) => (
+                                                                <div key={fv.id} className="flex items-center">
+                                                                    <Field
                                                                         type="checkbox"
-                                                                        id={`feature-${feature.id}-value-${value.id}`}
+                                                                        name={`features.${feature.id}`}
+                                                                        value={String(fv.id)}
+                                                                        as="input"
                                                                         className="form-checkbox"
-                                                                        checked={selectedFeatureValues[feature.id]?.includes(value.id) || false}
-                                                                        onChange={() => handleFeatureCheckboxChange(feature.id, value.id)} />
-                                                                    <span> {value.name}</span>
-                                                                </label>
-                                                            </div>
-                                                        ))}
+                                                                        id={`feature-${feature.id}-value-${fv.id}`}
+                                                                    />
+                                                                    <label
+                                                                        htmlFor={`feature-${feature.id}-value-${fv.id}`}
+                                                                        className="ml-2"
+                                                                    >
+                                                                        {fv.name}
+                                                                    </label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
+                                            ))}
+
+                                            <div className="flex justify-between">
+                                                {currentStep > 1 && (
+                                                    <button type="button" className="btn btn-primary" onClick={handleBack}>
+                                                        Back
+                                                    </button>
+                                                )}
+                                                <button type="submit" className="btn btn-primary ltr:ml-auto rtl:mr-auto">
+                                                    {currentStep === 1 ? 'Next' : 'Finish'}
+                                                </button>
                                             </div>
-                                        ))}
-                                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                        </Form>
+                                    )}
+                                </Formik>
+                            )}
 
-
-                                        </div>
-                                        {/* Navigation Buttons */}
-                                        <div className="flex justify-between">
-                                            <button
-                                                type="button"
-                                                className={`btn btn-primary ${currentStep === 1 ? 'hidden' : ''}`}
-                                                onClick={handleBack}
-                                            >
-                                                Back
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                className="btn btn-primary ltr:ml-auto rtl:mr-auto"
-                                            // disabled={!isValid || !dirty}
-                                            >
-                                                {currentStep === 1 ? 'Next' : 'Finish'}
-                                            </button>
-                                        </div>
-                                    </Form>
-                                )}
-                            </Formik>)}
-
-                            {/* Image Upload Step */}
+                            {/* STEP 2: IMAGES & BROCHURE */}
                             {currentStep === 2 && (
                                 <div>
-                                    <h2 className="text-lg font-bold mb-4">Upload Car Images</h2>
-                                    {/* Image Upload Component */}
+                                    <h2 className="text-lg font-bold mb-4">Upload Car Assets</h2>
                                     <ComponentsDragndropGrid
                                         onImagesUpdate={handleImagesUpdate}
-                                        initialImages={images} // Pass initial images from Redux
+                                        initialImages={images}
                                     />
-
                                     <BrochureUpload
                                         onFileUpload={(file) => dispatch(setBrochure(file))}
                                         initialFile={brochureFile}
                                     />
-
                                     <div className="flex justify-between mt-4">
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary"
-                                            onClick={handleBack}
-                                        >
+                                        <button type="button" className="btn btn-secondary" onClick={handleBack}>
                                             Back
                                         </button>
                                         <button
                                             type="button"
                                             className="btn btn-primary"
                                             onClick={() => {
-                                                console.log("Step 2 Images before transformation:", images); // Debug images before transformation
-
-                                                // Transform images to include only fileId, type, and order
+                                                // transform images if needed
                                                 const transformedImages = images.map((img) => ({
                                                     fileId: img.fileId,
                                                     type: img.type,
                                                     order: img.order,
                                                 }));
-
-                                                const payload = {
-                                                    ...formData,
-                                                    id: carId,
-                                                    images: transformedImages, // Include transformed images in the form data
-                                                };
-
-                                                console.log("Payload with transformed images:", payload); // Debug final payload
-
-                                                dispatch(setFormData(payload)); // Update Redux with the transformed images
-                                                dispatch(setStep(currentStep + 1)); // Move to Step 3
-
-                                                console.log(`Moved to Step: ${currentStep + 1}`);
+                                                dispatch(
+                                                    setFormData({
+                                                        ...formData,
+                                                        images: transformedImages,
+                                                        brochureId: brochureFile?.id || null,
+                                                    })
+                                                );
+                                                dispatch(setStep(currentStep + 1));
                                             }}
                                         >
                                             Next
                                         </button>
-
-
-
                                     </div>
                                 </div>
                             )}
 
-                            {/* Publish Step */}
+                            {/* STEP 3: Publish/Update */}
                             {currentStep === 3 && (
                                 <div>
-                                    <h2 className="text-lg font-bold mb-4">Review & Publish</h2>
-                                    <button
-                                        type="button"
-                                        className="btn btn-primary"
-                                        onClick={handleUpdate}
-                                    >
-                                        Update
-                                    </button>
-                                </div>
+                                    <h2 className="text-lg font-bold mb-4">Review &amp; Publish</h2>
+                                    <div className="border rounded p-5 mb-5">
+                                        <h3 className="text-md font-semibold mb-2">General Car Details</h3>
+                                        <p>
+                                            <strong>Stock ID:</strong> {formData.stockId || '-'}
+                                        </p>
+                                        <p>
+                                            <strong>Brand:</strong> {selectedBrand?.label || '-'}{' '}
+                                            <strong>Model:</strong> {selectedModel?.label || '-'}{' '}
+                                            <strong>Trim:</strong> {selectedTrim?.label || '-'}
+                                        </p>
+                                        <p>
+                                            <strong>Year:</strong> {selectedYear?.label || '-'}
+                                        </p>
+                                        <p>
+                                            <strong>Price:</strong> AED {formData.price} / USD {formData.usdPrice}
+                                        </p>
+                                        <p>
+                                            <strong>Description:</strong>{' '}
+                                            <span dangerouslySetInnerHTML={{ __html: formData.description || '-' }} />
+                                        </p>
 
+                                        <h3 className="text-md font-semibold mt-4 mb-2">Specifications</h3>
+                                        <ul>
+                                            {Object.entries(formData.specifications).map(([key, val]) => (
+                                                <li key={key}>
+                                                    {key}: {val}
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <h3 className="text-md font-semibold mt-4 mb-2">Features</h3>
+                                        <ul>
+                                            {Object.entries(formData.features).map(([fId, arr]) => (
+                                                <li key={fId}>
+                                                    Feature {fId}: {(arr as string[]).join(', ')}
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <h3 className="text-md font-semibold mt-4 mb-2">Tags</h3>
+                                        <p>
+                                            {formData.tags && formData.tags.length > 0
+                                                ? formData.tags.map((tId) => {
+                                                    const tagObj = tags.find((tag) => tag.id === tId);
+                                                    return tagObj ? tagObj.name : tId;
+                                                }).join(', ')
+                                                : '-'}
+                                        </p>
+
+                                        <h3 className="text-md font-semibold mt-4 mb-2">Assets</h3>
+                                        <div>
+                                            <strong>Images:</strong>
+                                            {renderImagesPreview()}
+                                        </div>
+                                        <div className="mt-4">
+                                            <strong>Brochure:</strong> {renderBrochurePreview()}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <button type="button" className="btn btn-secondary" onClick={handleBack}>
+                                            Back
+                                        </button>
+                                        <button type="button" className="btn btn-primary" onClick={handleUpdate}>
+                                            Update
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
-
                     </div>
                 </div>
             </div>
-        </div >
+
+            {/* Optional Lightbox Preview */}
+            <Lightbox
+                open={openLightbox}
+                close={() => setOpenLightbox(false)}
+                slides={slides}
+                index={currentIndex}
+                plugins={[Captions, Zoom]}
+                styles={{ container: { backgroundColor: 'rgba(0, 0, 0, 0.8)' } }}
+                captions={{ showToggle: false }}
+                zoom={{ maxZoomPixelRatio: 3 }}
+            />
+        </div>
     );
 };
 
