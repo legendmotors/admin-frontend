@@ -1,3 +1,4 @@
+import AnalyticsComponent from '@/components/dashboard/AnalyticsComponent';
 import ComponentsDashboardAnalytics from '@/components/dashboard/components-dashboard-analytics';
 import ComponentsDashboardCrypto from '@/components/dashboard/components-dashboard-crypto';
 import ComponentsDashboardFinance from '@/components/dashboard/components-dashboard-finance';
@@ -6,11 +7,14 @@ import { Metadata } from 'next';
 import React from 'react';
 
 export const metadata: Metadata = {
-    title: 'Sales Admin',
+    title: 'Dashboard',
 };
 
 const Sales = () => {
-    return <ComponentsDashboardAnalytics />
+    return <>
+        <AnalyticsComponent />
+        {/* <ComponentsDashboardAnalytics /> */}
+    </>
 };
 
 export default Sales;

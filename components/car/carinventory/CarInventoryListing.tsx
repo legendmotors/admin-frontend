@@ -900,7 +900,7 @@ const CarInventoryListing: React.FC = () => {
                     dispatch(setSortBy(sortField));
                     dispatch(setOrder(sortOrder as "ASC" | "DESC"));
                   }}
-                  className="w-25"
+                  className="w-100"
                   styles={customStyles}
                 />
               </div>

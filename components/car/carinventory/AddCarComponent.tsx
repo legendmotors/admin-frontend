@@ -106,7 +106,7 @@ interface FormDataType {
 }
 
 // Initialize socket using the correct URL from your env variable
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 const AddCarComponent: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
@@ -526,8 +526,8 @@ const AddCarComponent: React.FC = () => {
 
       const valueObj = spec.values.find((v) => String(v.value) === String(specValueId));
       return (
-        <li key={specKey}>
-          <strong>{spec.name}:</strong> {valueObj ? valueObj.label : specValueId}
+        <li key={specKey} className='mt-3'>
+          <strong>{spec.name}:</strong> <span className="badge bg-primary rounded-full">{valueObj ? valueObj.label : specValueId}</span>
         </li>
       );
     }).filter(Boolean) as JSX.Element[];
@@ -544,8 +544,8 @@ const AddCarComponent: React.FC = () => {
       });
 
       return (
-        <li key={featureId}>
-          <strong>{feature.name}:</strong> {labels.join(', ')}
+        <li key={featureId} className='mt-3'>
+          <strong>{feature.name}:</strong> <span className="badge bg-primary rounded-full">{labels.join(', ')}</span>
         </li>
       );
     }).filter(Boolean) as JSX.Element[];
@@ -561,9 +561,8 @@ const AddCarComponent: React.FC = () => {
       })
       .join(', ');
 
-    return tagNames || '-';
+    return <span className="badge bg-primary rounded-full">{tagNames || '-'}</span>
   };
-
   // -------------------------
   // Lightbox for Images
   // -------------------------
@@ -1109,15 +1108,17 @@ const AddCarComponent: React.FC = () => {
               {/* STEP 3: PREVIEW & PUBLISH */}
               {currentStep === 3 && (
                 <div>
-                  <h2 className="text-lg font-bold mb-4">Review &amp; Publish</h2>
+                  <h2 className="text-2xl font-bold mb-4">Review &amp; Publish</h2>
                   <div className="border rounded p-5 mb-5">
-                    <h3 className="text-md font-semibold mb-2">General Car Details</h3>
+                    <h3 className="text-xl font-bold mb-2">General Car Details</h3>
                     <p>
                       <strong>Stock ID:</strong> {formData.stockId || '-'}
                     </p>
                     <p>
                       <strong>Brand:</strong> {selectedBrand?.label || '-'}{' '}
+                      <br/>
                       <strong>Model:</strong> {selectedModel?.label || '-'}{' '}
+                      <br/>
                       <strong>Trim:</strong> {selectedTrim?.label || '-'}
                     </p>
                     <p>
@@ -1126,8 +1127,8 @@ const AddCarComponent: React.FC = () => {
                     <p>
                       <strong>Price:</strong> AED {formData.price} / USD {formData.usdPrice}
                     </p>
-                    <p>
-                      <strong>Description:</strong>{' '}
+                    <p className='border rounded-lg p-2 mt-4'>
+                      <strong className=' font-bold mb-6'>Description:</strong>{' '}
                       <span
                         dangerouslySetInnerHTML={{
                           __html: formData.description || '-',
@@ -1135,16 +1136,16 @@ const AddCarComponent: React.FC = () => {
                       />
                     </p>
 
-                    <h3 className="text-md font-semibold mt-4 mb-2">Specifications</h3>
+                    <h3 className="text-xl font-bold mt-4 mb-2">Specifications</h3>
                     <ul>{renderSpecificationsPreview()}</ul>
 
-                    <h3 className="text-md font-semibold mt-4 mb-2">Features</h3>
+                    <h3 className="text-xl font-bold mt-4 mb-2">Features</h3>
                     <ul>{renderFeaturesPreview()}</ul>
 
-                    <h3 className="text-md font-semibold mt-4 mb-2">Tags</h3>
+                    <h3 className="text-xl font-bold mt-4 mb-2">Tags</h3>
                     <p>{renderTagsPreview()}</p>
 
-                    <h3 className="text-md font-semibold mt-4 mb-2">Assets</h3>
+                    <h3 className="text-xl font-bold mt-4 mb-2">Assets</h3>
                     <div>
                       <strong>Images:</strong>
                       {renderImagesPreview()}

@@ -17,7 +17,7 @@ import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/captions.css';
 
 import { IRootState, AppDispatch } from '@/store/index';
-import { setStep, setFormData, setImages, setBrochure } from '@/store/formSlice';
+import { setStep, setFormData, setImages, setBrochure, resetForm } from '@/store/formSlice';
 
 import IconThumbUp from '@/components/icon/icon-thumb-up';
 import IconMenuForms from '@/components/icon/menu/icon-menu-forms';
@@ -109,7 +109,7 @@ interface FormDataType {
 }
 
 // Initialize socket using the correct URL from your env variable
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 interface UpdateCarProps {
     carId: number;
@@ -459,7 +459,7 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
     // -------------------------
     const constructFinalPayload = (rawValues: FormDataType) => {
         return {
-            id:carId,
+            id: carId,
             stockId: rawValues.stockId || null,
             description: rawValues.description || '',
             status: 'published',
@@ -527,8 +527,8 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
             // Call updateCar service with the final formData
             const payload = constructFinalPayload(formData);
 
-            console.log(payload,"payload");
-            
+            console.log(payload, "payload");
+
             const response = await CarService.updateCar(payload);
             // Unsubscribe from socket
             socket.off('progress');
@@ -544,16 +544,9 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                     text: 'Your car has been updated successfully.',
                 }).then(() => {
                     // Reset Redux state
-                    dispatch(setFormData({} as FormDataType));
-                    dispatch(setStep(1));
+                    dispatch(resetForm());
                     // Redirect to inventory list
                     window.location.href = '/inventory/list';
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to update the car. Please try again.',
                 });
             }
         } catch (error) {
@@ -564,6 +557,55 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                 text: 'An error occurred while updating the car.',
             });
         }
+    };
+
+
+    // -------------------------
+    // Preview Helpers (Step 3)
+    // -------------------------
+    const renderSpecificationsPreview = (): JSX.Element[] => {
+        return Object.entries(formData.specifications).map(([specKey, specValueId]) => {
+            const spec = specifications.find((s) => s.key === specKey);
+            if (!spec) return null as unknown as JSX.Element;
+
+            const valueObj = spec.values.find((v) => String(v.value) === String(specValueId));
+            return (
+                <li key={specKey} className='mt-3'>
+                    <strong>{spec.name}:</strong> <span className="badge bg-primary rounded-full">{valueObj ? valueObj.label : specValueId}</span>
+                </li>
+            );
+        }).filter(Boolean) as JSX.Element[];
+    };
+
+    const renderFeaturesPreview = (): JSX.Element[] => {
+        return Object.entries(formData.features).map(([featureId, valueIds]) => {
+            const feature = features.find((f) => String(f.id) === featureId);
+            if (!feature) return null as unknown as JSX.Element;
+
+            const labels = (valueIds as string[]).map((vId) => {
+                const valObj = feature.values.find((fv) => String(fv.id) === vId);
+                return valObj ? valObj.name : vId;
+            });
+
+            return (
+                <li key={featureId} className='mt-3'>
+                    <strong>{feature.name}:</strong> <span className="badge bg-primary rounded-full">{labels.join(', ')}</span>
+                </li>
+            );
+        }).filter(Boolean) as JSX.Element[];
+    };
+
+    const renderTagsPreview = (): string | JSX.Element => {
+        if (!formData.tags || formData.tags.length === 0) return '-';
+
+        const tagNames = formData.tags
+            .map((tagId) => {
+                const tagObj = tags.find((t) => t.id === tagId);
+                return tagObj ? tagObj.name : String(tagId);
+            })
+            .join(', ');
+
+        return <span className="badge bg-primary rounded-full">{tagNames || '-'}</span>
     };
 
     // For Lightbox slides (optional)
@@ -584,7 +626,7 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                 {images.map((img, index) => (
                     <div
                         key={index}
-                        className="w-24 h-24 bg-gray-100 rounded overflow-hidden cursor-pointer"
+                        className="w-36 h-36 bg-gray-100 rounded overflow-hidden cursor-pointer"
                         onClick={() => handleThumbnailClick(index)}
                     >
                         <img
@@ -1071,15 +1113,17 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                             {/* STEP 3: Publish/Update */}
                             {currentStep === 3 && (
                                 <div>
-                                    <h2 className="text-lg font-bold mb-4">Review &amp; Publish</h2>
+                                    <h2 className="text-2xl font-bold mb-4">Review &amp; Publish</h2>
                                     <div className="border rounded p-5 mb-5">
-                                        <h3 className="text-md font-semibold mb-2">General Car Details</h3>
+                                        <h3 className="text-xl font-bold mb-2">General Car Details</h3>
                                         <p>
                                             <strong>Stock ID:</strong> {formData.stockId || '-'}
                                         </p>
                                         <p>
                                             <strong>Brand:</strong> {selectedBrand?.label || '-'}{' '}
+                                            <br/>
                                             <strong>Model:</strong> {selectedModel?.label || '-'}{' '}
+                                            <br/>
                                             <strong>Trim:</strong> {selectedTrim?.label || '-'}
                                         </p>
                                         <p>
@@ -1088,40 +1132,25 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                                         <p>
                                             <strong>Price:</strong> AED {formData.price} / USD {formData.usdPrice}
                                         </p>
-                                        <p>
-                                            <strong>Description:</strong>{' '}
-                                            <span dangerouslySetInnerHTML={{ __html: formData.description || '-' }} />
+                                        <p className='border rounded-lg p-2 mt-4'>
+                                            <strong className=' font-bold mb-6'>Description:</strong>{' '}
+                                            <span
+                                                dangerouslySetInnerHTML={{
+                                                    __html: formData.description || '-',
+                                                }}
+                                            />
                                         </p>
 
-                                        <h3 className="text-md font-semibold mt-4 mb-2">Specifications</h3>
-                                        <ul>
-                                            {Object.entries(formData.specifications).map(([key, val]) => (
-                                                <li key={key}>
-                                                    {key}: {val}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <h3 className="text-xl font-bold mt-4 mb-2">Specifications</h3>
+                                        <ul>{renderSpecificationsPreview()}</ul>
 
-                                        <h3 className="text-md font-semibold mt-4 mb-2">Features</h3>
-                                        <ul>
-                                            {Object.entries(formData.features).map(([fId, arr]) => (
-                                                <li key={fId}>
-                                                    Feature {fId}: {(arr as string[]).join(', ')}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <h3 className="text-xl font-bold mt-4 mb-2">Features</h3>
+                                        <ul>{renderFeaturesPreview()}</ul>
 
-                                        <h3 className="text-md font-semibold mt-4 mb-2">Tags</h3>
-                                        <p>
-                                            {formData.tags && formData.tags.length > 0
-                                                ? formData.tags.map((tId) => {
-                                                    const tagObj = tags.find((tag) => tag.id === tId);
-                                                    return tagObj ? tagObj.name : tId;
-                                                }).join(', ')
-                                                : '-'}
-                                        </p>
+                                        <h3 className="text-xl font-bold mt-4 mb-2">Tags</h3>
+                                        <p>{renderTagsPreview()}</p>
 
-                                        <h3 className="text-md font-semibold mt-4 mb-2">Assets</h3>
+                                        <h3 className="text-xl font-bold mt-4 mb-2">Assets</h3>
                                         <div>
                                             <strong>Images:</strong>
                                             {renderImagesPreview()}
