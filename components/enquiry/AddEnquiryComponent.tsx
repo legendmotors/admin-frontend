@@ -4,11 +4,11 @@ import React, { useRef } from 'react';
 import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 import SectionHeader from '@/components/utils/SectionHeader';
 import CarEnquiryService from '@/services/CarEnquiryService';
 
-const MySwal = withReactContent(Swal);
+
 
 interface EnquiryFormValues {
     stockId: string;

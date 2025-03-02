@@ -2,9 +2,9 @@ import axios from 'axios';
 import api from '@/utils/ApiConfig';
 import { Apis } from '@/utils/apiUrls';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 
-const MySwal = withReactContent(Swal);
+
+
 
 const showNotification = (message: string = '', icon: 'success' | 'error' = 'success') => {
     Swal.fire({

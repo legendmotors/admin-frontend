@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 import RichTextEditor from '@/components/editor/RichTextEditor';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import IconSave from '@/components/icon/icon-save';
@@ -22,7 +22,7 @@ import BlogCategoryService from '@/services/BlogCategoryService';
 import { getCookie } from '@/utils/cookieFunction';
 import ConfirmationModal from '@/components/modal/MediaModal';
 
-const MySwal = withReactContent(Swal);
+
 
 interface UpdateBlogPostFormValues {
   id: string;

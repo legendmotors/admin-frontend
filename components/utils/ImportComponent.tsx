@@ -4,7 +4,7 @@ import withReactContent from "sweetalert2-react-content";
 import { io, Socket } from "socket.io-client";
 import IconDownload from "../icon/icon-download";
 
-const MySwal = withReactContent(Swal);
+
 
 // Define socketURL globally
 const socketURL = process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.legendmotorsuae.com";
@@ -122,7 +122,7 @@ const ImportComponent: React.FC<ImportComponentProps> = ({
     };
 
     const handleImportClick = () => {
-        MySwal.fire({
+        Swal.fire({
             title,
             html: `
                 <p>${description}</p>

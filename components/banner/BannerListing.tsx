@@ -41,6 +41,7 @@ const BannerListing: React.FC = () => {
             },
         },
         { accessor: 'title', title: 'Title', sortable: true },
+        { accessor: 'identifier', title: 'Identifier', sortable: true },
         { accessor: 'slug', title: 'Slug', sortable: true },
         {
             accessor: 'status',

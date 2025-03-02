@@ -4,10 +4,10 @@ import React, { useRef } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 import PagesService from '@/services/PagesService';
 
-const MySwal = withReactContent(Swal);
+
 
 const AddPageComponent: React.FC = () => {
     const formikRef = useRef<any>(null);

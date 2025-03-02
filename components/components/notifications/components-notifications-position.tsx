@@ -4,14 +4,14 @@ import { IRootState } from '@/store';
 import React from 'react';
 import { useSelector } from 'react-redux';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 
 const ComponentsNotificationsPosition = () => {
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl';
-    const MySwal = withReactContent(Swal);
+    
 
     const showMessage1 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'top-end' : 'top-start',
@@ -21,7 +21,7 @@ const ComponentsNotificationsPosition = () => {
         });
     };
     const showMessage2 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: 'top',
@@ -32,7 +32,7 @@ const ComponentsNotificationsPosition = () => {
     };
 
     const showMessage3 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'top-start' : 'top-end',
@@ -43,7 +43,7 @@ const ComponentsNotificationsPosition = () => {
     };
 
     const showMessage4 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'bottom-end' : 'bottom-start',
@@ -54,7 +54,7 @@ const ComponentsNotificationsPosition = () => {
     };
 
     const showMessage5 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: 'bottom',
@@ -65,7 +65,7 @@ const ComponentsNotificationsPosition = () => {
     };
 
     const showMessage6 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'bottom-start' : 'bottom-end',
@@ -78,12 +78,12 @@ const ComponentsNotificationsPosition = () => {
         <PanelCodeHighlight
             title="Position"
             codeHighlight={`import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 
-const MySwal = withReactContent(Swal);
+
+
 
     const showMessage1 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'top-end' : 'top-start',
@@ -93,7 +93,7 @@ const MySwal = withReactContent(Swal);
         });
     };
     const showMessage2 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: 'top',
@@ -104,7 +104,7 @@ const MySwal = withReactContent(Swal);
     };
 
     const showMessage3 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'top-start' : 'top-end',
@@ -115,7 +115,7 @@ const MySwal = withReactContent(Swal);
     };
 
     const showMessage4 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'bottom-end' : 'bottom-start',
@@ -126,7 +126,7 @@ const MySwal = withReactContent(Swal);
     };
 
     const showMessage5 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: 'bottom',
@@ -137,7 +137,7 @@ const MySwal = withReactContent(Swal);
     };
 
     const showMessage6 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: isRtl ? 'bottom-start' : 'bottom-end',

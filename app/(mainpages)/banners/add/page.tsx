@@ -1,18 +1,17 @@
 import AddBannerComponent from '@/components/banner/AddBannerComponent';
 import Breadcrumb from '@/components/utils/Breadcrumbs';
 import { Metadata } from 'next';
-import Link from 'next/link';
 import React from 'react';
 
 export const metadata: Metadata = {
     title: 'Add Brand',
 };
 
-const AddBrand = () => {
+const AddBanner = () => {
     const breadcrumbItems = [
         { label: 'Home', isHome: true, link: '/', isActive: false },
-        { label: 'All Brands', link: '/brand/list', isActive: false },
-        { label: 'Add Brand', link: '', isActive: true },
+        { label: 'All Banner', link: '/banners/list', isActive: false },
+        { label: 'Add Banner', link: '', isActive: true },
     ];
 
     return (
@@ -23,4 +22,4 @@ const AddBrand = () => {
         </div>)
 };
 
-export default AddBrand;
+export default AddBanner;

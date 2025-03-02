@@ -1,10 +1,10 @@
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 import api from '@/utils/ApiConfig';
 import { Apis } from '@/utils/apiUrls';
 import axios from 'axios';
 
-const MySwal = withReactContent(Swal);
+
 
 const showNotification = (
   message: string = '',

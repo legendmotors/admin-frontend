@@ -6,8 +6,11 @@ import { Nunito } from 'next/font/google';
 
 export const metadata: Metadata = {
     title: {
-        template: '%s | legend motors - Multipurpose Tailwind Dashboard Template',
-        default: 'legend motors - Multipurpose Tailwind Dashboard Template',
+        template: 'legend motors',
+        default: 'legend motors',
+    },
+    icons: {
+        icon: '/favicon.ico', // Ensure the correct file name
     },
 };
 const nunito = Nunito({

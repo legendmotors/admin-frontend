@@ -6,7 +6,7 @@ import Breadcrumb from '@/components/utils/Breadcrumbs';
 
 import { useParams } from 'next/navigation'; // Import useParams from next/navigation
 
-const EditBrandPage = () => {
+const EditBanner = () => {
     const { id } = useParams(); // Get the dynamic `id` from the URL parameters
 
     // Ensure the `id` is a single string and parse it as a number
@@ -19,8 +19,8 @@ const EditBrandPage = () => {
 
     const breadcrumbItems = [
         { label: 'Home', isHome: true, link: '/', isActive: false },
-        { label: 'All Brands', link: '/brand/list', isActive: false },
-        { label: 'Edit Brand', link: '', isActive: true },
+        { label: 'All Banner', link: '/banners/list', isActive: false },
+        { label: 'Edit Banner', link: '', isActive: true },
     ];
 
     return (
@@ -31,4 +31,4 @@ const EditBrandPage = () => {
     );
 };
 
-export default EditBrandPage;
+export default EditBanner;

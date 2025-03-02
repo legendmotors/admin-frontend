@@ -1,15 +1,15 @@
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 import api from '@/utils/ApiConfig';
 import { eraseCookie, getCookie, setCookie } from '@/utils/cookieFunction';
 import { Apis } from '@/utils/apiUrls';
 import { jwtDecode } from 'jwt-decode';
 
-const MySwal = withReactContent(Swal);
+
 
 // Show notification
 const showTopCenterNotification = (message: string) => {
-    MySwal.fire({
+    Swal.fire({
         title: message,
         toast: true,
         position: 'top',

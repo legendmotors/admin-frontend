@@ -15,6 +15,7 @@ const PageSectionListingComponent: React.FC<PageSectionListingProps> = ({ pageId
   // Define your table columns. You might want to update these for page sections.
   const columns = [
     { accessor: 'sectionKey', title: 'Section Key', sortable: true },
+    { accessor: 'title', title: 'Title', sortable: true },
     { accessor: 'content', title: 'Content', sortable: false },
   ];
 

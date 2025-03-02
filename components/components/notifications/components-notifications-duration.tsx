@@ -2,13 +2,13 @@
 import PanelCodeHighlight from '@/components/panel-code-highlight';
 import React from 'react';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 
 const ComponentsNotificationsDuration = () => {
-    const MySwal = withReactContent(Swal);
+    
 
     const showMessage8 = () => {
-        MySwal.fire({
+        Swal.fire({
             title: 'Example notification text.',
             toast: true,
             position: 'bottom-start',
@@ -22,12 +22,12 @@ const ComponentsNotificationsDuration = () => {
         <PanelCodeHighlight
             title="Duration"
             codeHighlight={`import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 
-const MySwal = withReactContent(Swal);
+
+
 
 const showMessage8 = () => {
-    MySwal.fire({
+    Swal.fire({
         title: 'Example notification text.',
         toast: true,
         position: 'bottom-start',

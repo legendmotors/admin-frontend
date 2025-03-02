@@ -7,9 +7,9 @@ import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconEye from '@/components/icon/icon-eye';
 import ReusableTable from '@/components/common/data-table/ReusableTable';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 
-const MySwal = withReactContent(Swal);
+
+
 
 const NewsletterListing: React.FC = () => {
     const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_IMAGE_BASE_URL;
@@ -18,7 +18,7 @@ const NewsletterListing: React.FC = () => {
     const toggleStatus = async (email: string, currentStatus: string) => {
 
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-        const result = await MySwal.fire({
+        const result = await Swal.fire({
             title: `Change Subscription Status?`,
             text: `Are you sure you want to set this subscription as ${newStatus}?`,
             icon: 'warning',

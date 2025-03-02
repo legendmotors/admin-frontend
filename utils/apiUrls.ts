@@ -211,6 +211,7 @@ const Apis: Record<string, string> = {
     GetBannerById: `${API_URL}banner/getById`,
     GetBannerBySlug: `${API_URL}banner/getBySlug`,
     BulkDeleteBanners: `${API_URL}banner/bulk-delete`,
+    GetBannerByIdentifier:`${API_URL}banner/getByIdentifier`,
 
     // Newsletter endpoints
     AddNewsletter: `${API_URL}newsletter/subscribe`,

@@ -1,10 +1,7 @@
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 import api from '@/utils/ApiConfig';
 import { Apis } from '@/utils/apiUrls';
 import axios from 'axios';
-
-const MySwal = withReactContent(Swal);
 
 const showNotification = (message: string = '', icon: 'success' | 'error' = 'success') => {
   Swal.fire({
@@ -76,6 +73,31 @@ export const getBannerBySlug = async (slug: string) => {
       console.error('Error fetching banner by slug:', error.response?.data?.message);
       showNotification(
         error.response?.data?.message || 'An error occurred while fetching banner by slug.',
+        'error'
+      );
+    } else {
+      console.error('Unexpected error:', error);
+      showNotification('An unexpected error occurred.', 'error');
+    }
+    return null;
+  }
+};
+
+/* Get Banner by Identifier */
+export const getBannerByIdentifier = async (identifier: string) => {
+  try {
+    const response = await api.get(Apis.GetBannerByIdentifier, { params: { identifier } });
+    if (!response || !response.data.success) {
+      showNotification('Banner not found.', 'error');
+      return null;
+    }
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Error fetching banner by identifier:', error.response?.data?.message);
+      showNotification(
+        error.response?.data?.message ||
+          'An error occurred while fetching banner by identifier.',
         'error'
       );
     } else {
@@ -190,6 +212,7 @@ export default {
   listBanners,
   getBannerById,
   getBannerBySlug,
+  getBannerByIdentifier,
   addBanner,
   updateBanner,
   deleteBanner,

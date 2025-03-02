@@ -3,7 +3,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { io, Socket } from "socket.io-client";
 
-const MySwal = withReactContent(Swal);
+
 
 interface ProgressData {
   status: string;
@@ -95,7 +95,7 @@ const ImportBrandComponent: React.FC = () => {
   };
 
   const handleImportClick = () => {
-    MySwal.fire({
+    Swal.fire({
       title: "Select a File to Import",
       html: `
         <p>Click the button below to select a CSV file.</p>

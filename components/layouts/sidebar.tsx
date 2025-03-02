@@ -45,13 +45,9 @@ const menuItems: MenuItem[] = [
     {
         key: 'dashboard',
         label: 'Dashboard',
-        href: '/dashboard',
+        href: '/',
         icon: <IconMenuDashboard />,
-        requiredPermissions: ['view_dashboard'],
-        subMenu: [
-            { label: 'Analytics', href: '/dashboard/analytics' },
-            { label: 'Overview', href: '/dashboard/overview' },
-        ],
+        requiredPermissions: ['view_dashboard']
     },
     {
         key: 'manageCarDetails',

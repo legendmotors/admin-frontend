@@ -1,13 +1,13 @@
 import api from '@/utils/ApiConfig';
 import { Apis } from '@/utils/apiUrls';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
 
-const MySwal = withReactContent(Swal);
+
+
 
 // Show notification
 const showTopCenterNotification = (message: string) => {
-    MySwal.fire({
+    Swal.fire({
         title: message,
         toast: true,
         position: 'top',

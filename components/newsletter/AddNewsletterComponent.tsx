@@ -4,11 +4,11 @@ import React, { useRef } from 'react';
 import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
+
 import SectionHeader from '@/components/utils/SectionHeader';
 import NewsletterService from '@/services/NewsletterService';
 
-const MySwal = withReactContent(Swal);
+
 
 interface NewsletterFormValues {
     email: string;
