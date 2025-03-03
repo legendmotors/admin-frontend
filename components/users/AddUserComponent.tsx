@@ -1,43 +1,27 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2';
 import SectionHeader from '@/components/utils/SectionHeader';
 import IconSave from '@/components/icon/icon-save';
-import { GetUserDetails } from '@/services';
+import { GetUserDetails, GetUserLogin } from '@/services';
 import { AsyncPaginate } from 'react-select-async-paginate';
 
-const UpdateUserComponent = ({ userId }: { userId: number }) => {
-  const [initialValues, setInitialValues] = useState<any>(null);
+const AddAdminUserComponent = () => {
   const [selectedRole, setSelectedRole] = useState<{ value: number; label: string } | null>(null);
   const formikRef = useRef<any>(null);
 
-  // Fetch user data and pre-populate form values
-  useEffect(() => {
-    const fetchUser = async () => {
-      const response = await GetUserDetails.getUserById(userId);
-      // Assuming the response structure is { success: true, data: { ... } }
-      const userData = response?.data || response;
-      if (userData) {
-        setInitialValues({
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          email: userData.email || '',
-          phone: userData.phone || '',
-          roleId: userData.roleId || null, // Role identifier
-          verify: userData.verify || false,
-        });
-        // Pre-fill selectedRole using the associated role details if available
-        if (userData.role) {
-          setSelectedRole({ value: userData.role.id, label: userData.role.name });
-        }
-      }
-    };
-
-    fetchUser();
-  }, [userId]);
+  const initialValues = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    roleId: null,
+  };
 
   // Define loadOptions function for AsyncPaginate to load roles with pagination
   const fetchRoles = async (
@@ -62,10 +46,14 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
     return { options: [], hasMore: false, additional: { page: 1 } };
   };
 
-  // Form validation schema
+  // Validation schema using Yup
   const validationSchema = Yup.object().shape({
     firstName: Yup.string().required('First name is required'),
     email: Yup.string().email('Invalid email').required('Email is required'),
+    password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+    confirmPassword: Yup.string()
+      .oneOf([Yup.ref('password')], 'Passwords must match')
+      .required('Confirm Password is required'),
     roleId: Yup.number().required('Role is required'),
   });
 
@@ -74,12 +62,23 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
     values: any,
     { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
   ) => {
-    const response = await GetUserDetails.updateUser(userId, values);
-    if (response.success) {
+    // Prepare payload omitting confirmPassword field
+    const payload = {
+      firstName: values.firstName,
+      lastName: values.lastName,
+      email: values.email,
+      phone: values.phone,
+      password: values.password,
+      roleId: values.roleId,
+    };
+
+    // Call the addAdminUser service to add a new admin user
+    const response = await GetUserLogin.addAdminUser(payload);
+    if (response && response.success) {
       Swal.fire({
         icon: 'success',
-        title: 'User Updated',
-        text: 'User has been updated successfully.',
+        title: 'Admin User Added',
+        text: 'Admin user has been added successfully.',
       }).then(() => {
         window.location.href = '/users/list';
       });
@@ -87,24 +86,20 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
     setSubmitting(false);
   };
 
-  if (!initialValues) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="flex flex-col gap-2.5 xl:flex-row">
-      <div className="panel flex-1 px-0 pb-6 ltr:xl:mr-6 rtl:xl:ml-6 pt-0">
-        <SectionHeader title="Edit User" />
+      <div className="panel flex-1 px-0 pb-6 pt-0">
+        <SectionHeader title="Add New Admin User" />
         <div className="px-4 w-100">
           <Formik
             innerRef={formikRef}
             initialValues={initialValues}
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
-            enableReinitialize
           >
             {({ handleChange, setFieldValue, dirty }) => (
               <Form className="space-y-5">
+                {/* First & Last Name */}
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <div>
                     <label htmlFor="firstName">First Name</label>
@@ -117,6 +112,7 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
                     <ErrorMessage name="lastName" component="div" className="mt-1 text-danger" />
                   </div>
                 </div>
+                {/* Email & Phone */}
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <div>
                     <label htmlFor="email">Email</label>
@@ -129,6 +125,20 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
                     <ErrorMessage name="phone" component="div" className="mt-1 text-danger" />
                   </div>
                 </div>
+                {/* Password & Confirm Password */}
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="password">Password</label>
+                    <Field name="password" type="password" id="password" className="form-input" onChange={handleChange} />
+                    <ErrorMessage name="password" component="div" className="mt-1 text-danger" />
+                  </div>
+                  <div>
+                    <label htmlFor="confirmPassword">Confirm Password</label>
+                    <Field name="confirmPassword" type="password" id="confirmPassword" className="form-input" onChange={handleChange} />
+                    <ErrorMessage name="confirmPassword" component="div" className="mt-1 text-danger" />
+                  </div>
+                </div>
+                {/* Role Selection */}
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <div>
                     <label htmlFor="roleId">Role</label>
@@ -145,21 +155,10 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
                     />
                     <ErrorMessage name="roleId" component="div" className="mt-1 text-danger" />
                   </div>
-                  <div>
-                    <label htmlFor="verify">Verified</label>
-                    <Field as="select" name="verify" id="verify" className="form-input" onChange={handleChange}>
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </Field>
-                  </div>
                 </div>
+                {/* Submit Button */}
                 <div className="mt-4">
-                  <button
-                    type="button"
-                    className="btn btn-success w-full gap-2"
-                    onClick={() => formikRef.current.submitForm()}
-                    disabled={!dirty}
-                  >
+                  <button type="submit" className="btn btn-success w-full gap-2" disabled={!dirty}>
                     <IconSave className="shrink-0 ltr:mr-2 rtl:ml-2" />
                     Save
                   </button>
@@ -173,4 +172,4 @@ const UpdateUserComponent = ({ userId }: { userId: number }) => {
   );
 };
 
-export default UpdateUserComponent;
+export default AddAdminUserComponent;

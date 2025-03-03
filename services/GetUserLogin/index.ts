@@ -180,6 +180,21 @@ const authenticate = (user: { token: string }, next: () => void) => {
     }
 };
 
+const addAdminUser = async (data: any) => {
+    try {
+        const result = await api.post(Apis.AddAdminUser, data);
+        if (result.data.error) {
+            showTopCenterNotification(result.data.error);
+            return null;
+        }
+        return result.data;
+    } catch (error) {
+        console.error(error);
+        showTopCenterNotification('An error occurred while adding the admin user.');
+        return null;
+    }
+};
+
 
 
 // 🔹 Logout User (Clear Cookies)
@@ -216,4 +231,5 @@ export default {
     authenticate,
     logout,
     isAuthenticate,
+    addAdminUser,
 };

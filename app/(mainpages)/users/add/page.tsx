@@ -1,7 +1,8 @@
+import AddAdminUserComponent from '@/components/users/AddUserComponent'
 import React from 'react'
 
 export default function page() {
   return (
-    <div>page</div>
+    <div> <AddAdminUserComponent />  </div>
   )
 }

@@ -44,6 +44,9 @@ const Apis: Record<string, string> = {
     // User Role Assignment API
     AssignRoleToUser: `${API_URL}users/assignRole`,
 
+
+    AddAdminUser: `${API_URL}auth/admin/add`,
+
     // Brand APIs
     GetBrandList: `${API_URL}brand/list`,
     AddBrand: `${API_URL}brand/create`,

@@ -178,7 +178,7 @@ const UserListingTable: React.FC = () => {
                 deleteService={GetUserDetails.deleteUser}
                 bulkDeleteService={GetUserDetails.bulkDeleteUser}
                 actions={actions}
-                // addUrl="/users/add"
+                addUrl="/users/add"
             />
         </div>
     );
