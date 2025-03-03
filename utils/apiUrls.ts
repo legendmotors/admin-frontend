@@ -206,6 +206,15 @@ const Apis: Record<string, string> = {
     GetPageSectionBySlug: `${API_URL}page-section/getBySlug`,
     BulkDeletePageSections: `${API_URL}page-section/bulk-delete`,
 
+    // Banner endpoints
+    GetBannerList: `${API_URL}banner/list`,
+    AddBanner: `${API_URL}banner/create`,
+    UpdateBanner: `${API_URL}banner/update`,
+    DeleteBanner: `${API_URL}banner/delete`,
+    GetBannerById: `${API_URL}banner/getById`,
+    GetBannerBySlug: `${API_URL}banner/getBySlug`,
+    BulkDeleteBanners: `${API_URL}banner/bulk-delete`,
+    GetBannerByIdentifier: `${API_URL}banner/getByIdentifier`,
 
     // Newsletter endpoints
     AddNewsletter: `${API_URL}newsletter/subscribe`,
@@ -225,7 +234,6 @@ const Apis: Record<string, string> = {
     GetContactById: `${API_URL}contact-us/getById`,
     DeleteContact: `${API_URL}contact-us/delete`,
 
-    //partner
 
     GetPartnerLogoList: `${API_URL}partner/list`,
     AddPartnerLogo: `${API_URL}partner/create`,
