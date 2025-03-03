@@ -151,6 +151,13 @@ const menuItems: MenuItem[] = [
         icon: <IconNotes />,
         requiredPermissions: ['manage_contact_enquiry'],
     },
+    {
+        key: 'partners',
+        label: 'Partners',
+        href: '/partners/list',
+        icon: <IconUsers />,
+        requiredPermissions: ['manage_partner'],
+    },
     // {
     //     key: 'testimonials',
     //     label: 'Testimonials',
