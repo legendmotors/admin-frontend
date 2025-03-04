@@ -10,7 +10,7 @@ import SectionHeader from '@/components/utils/SectionHeader';
 import FeatureService from '@/services/FeatureService';
 import { getTranslation } from '@/i18n';
 
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 interface FeatureFormValues {
     name: string;

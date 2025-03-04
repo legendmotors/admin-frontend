@@ -11,7 +11,7 @@ import IconSave from '@/components/icon/icon-save';
 import IconCircleCheck from '@/components/icon/icon-circle-check';
 import SectionHeader from '@/components/utils/SectionHeader';
 
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 interface TrimFormValues {
     name: string;

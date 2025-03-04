@@ -14,7 +14,7 @@ import { GeBrandDetails } from '@/services';
 import IconSave from '@/components/icon/icon-save';
 
 // Connect to the WebSocket server
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 const AddCarModelComponent = () => {
     const dispatch = useDispatch();

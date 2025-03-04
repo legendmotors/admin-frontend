@@ -11,7 +11,7 @@ import { getTranslation } from "@/i18n";
 import PageSectionService from "@/services/PageSectionService";
 import RichTextEditor from "../editor/RichTextEditor";
 
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 interface PageFormValues {
   sectionKey: string;

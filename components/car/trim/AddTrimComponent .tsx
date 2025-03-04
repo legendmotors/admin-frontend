@@ -11,7 +11,7 @@ import TrimService from '@/services/TrimService';
 import IconSave from '@/components/icon/icon-save';
 
 // Connect to WebSocket server
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 const AddTrimComponent = () => {
     const formikRef = useRef<any>(null);

@@ -18,7 +18,7 @@ import { setSelectedFiles } from '@/store/fileSelectionSlice';
 import ConfirmationModal from '@/components/modal/MediaModal';
 
 // Connect to the backend socket server
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
     const { t, i18n } = getTranslation();
@@ -130,6 +130,10 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
 
     const submitForm4 = Yup.object().shape({
         name: Yup.string().required('Please fill the name').min(1, 'Name must be at least 1 characters long'),
+        description: Yup.string()
+            .required('Please fill the description')
+            .max(2000, 'Description must be at most 1000 characters long'),
+
     });
 
     const handleRemoveImage = (e: React.MouseEvent) => {
@@ -145,9 +149,6 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
         name: string;
         description: string;
         slug: string;
-        metaTitle: string;
-        metaDescription: string;
-        metaKeywords: string;
         logo: string;
     }
 
@@ -161,10 +162,8 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
             name: values.name,
             slug: values.slug,
             description: values.description,
-            metaTitle: values.metaTitle,
-            metaDescription: values.metaDescription,
-            metaKeywords: values.metaKeywords,
             logo: selectedFiles.length > 0 ? selectedFiles[0].id : null,
+            featured,
         };
 
         try {
@@ -353,7 +352,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                             />
                                             <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
                                         </div>
-                                        <div className={submitCount ? (errors.slug ? 'has-error' : 'has-success') : ''}>
+                                        {/* <div className={submitCount ? (errors.slug ? 'has-error' : 'has-success') : ''}>
                                             <label htmlFor="slug">Slug</label>
                                             <Field
                                                 name="slug"
@@ -367,7 +366,7 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                 }}
                                             />
                                             <ErrorMessage name="slug" component="div" className="mt-1 text-danger" />
-                                        </div>
+                                        </div> */}
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-1">
@@ -420,8 +419,12 @@ const UpdateBrandComponent = ({ brandId }: { brandId: number }) => {
                                                     type="checkbox"
                                                     className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
                                                     checked={featured}
-                                                    onChange={() => setFeatured((prev) => !prev)}
+                                                    onChange={() => {
+                                                        setFeatured((prev) => !prev);
+                                                        setIsChanged(true); // mark the form as changed when featured is toggled
+                                                    }}
                                                 />
+
                                                 <span className="outline_checkbox bg-icon border-2 border-gray-300 dark:border-white-dark block h-full rounded-full before:absolute before:left-1 before:bg-gray-300 dark:before:bg-white-dark before:bottom-1 before:w-4 before:h-4 before:rounded-full before:bg-[url('/assets/images/close.svg')] before:bg-no-repeat before:bg-center peer-checked:before:left-7 peer-checked:before:bg-[url('/assets/images/checked.svg')] peer-checked:border-primary peer-checked:before:bg-primary before:transition-all before:duration-300"></span>
                                             </label>
                                         </div>

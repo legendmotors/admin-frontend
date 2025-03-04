@@ -10,7 +10,7 @@ import BlogCategoryService from '@/services/BlogCategoryService';
 import { useRouter } from 'next/navigation';
 
 // Connect to your backend Socket.io server
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 interface BlogCategoryFormValues {
     name: string;

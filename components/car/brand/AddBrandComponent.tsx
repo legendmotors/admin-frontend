@@ -18,7 +18,7 @@ import { useDispatch } from 'react-redux';
 import { setSelectedFiles } from '@/store/fileSelectionSlice';
 
 // Connect to the backend socket server
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`); // Make sure it matches your WebSocket server's URL
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`); // Make sure it matches your WebSocket server's URL
 
 const AddBrandComponent = () => {
     const dispatch = useDispatch();
@@ -89,8 +89,6 @@ const AddBrandComponent = () => {
         };
     }, []);
 
-
-
     // ✅ Helper function to render the SweetAlert progress UI
     const renderProgressHtml = (progress: number, message: string) => `
         <div class="mb-5 space-y-5">
@@ -104,16 +102,16 @@ const AddBrandComponent = () => {
     const submitForm4 = Yup.object().shape({
         name: Yup.string()
             .required('Please fill the name')
-            .min(1, 'Name must be at least 1 characters long'), description: Yup.string().required('Please fill the description'),
+            .min(1, 'Name must be at least 1 characters long'),
+        description: Yup.string()
+            .required('Please fill the description')
+            .max(2000, 'Description must be at most 1000 characters long'),
     });
 
     interface BrandFormValues {
         name: string;
         description: string;
         slug: string;
-        metaTitle: string;
-        metaDescription: string;
-        metaKeywords: string;
         logo: any[];
     }
 
@@ -125,7 +123,6 @@ const AddBrandComponent = () => {
             logo: selectedFiles.length > 0 ? selectedFiles[0].id : null, // ✅ Send selectedFiles as JSON array
         };
 
-
         try {
             // ✅ Show SweetAlert with dynamic UI updates
             Swal.fire({
@@ -135,7 +132,6 @@ const AddBrandComponent = () => {
                 allowOutsideClick: false,
                 allowEscapeKey: false,
             });
-
 
             // Send the request to create the brand
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/brand/create`, {
@@ -182,9 +178,7 @@ const AddBrandComponent = () => {
         }
     };
 
-
     const formikRef = useRef<any>(null);
-
 
     const { getRootProps, getInputProps } = useDropzone({
         accept: { 'image/*': [] },
@@ -250,10 +244,8 @@ const AddBrandComponent = () => {
                 selectionMode="multi" // 🔹 Set based on parent component logic
             />
             <div className="flex flex-col gap-2.5 xl:flex-row">
-
                 <div className="panel flex-1 px-0 pb-6 ltr:xl:mr-6 rtl:xl:ml-6 pt-0 ">
                     <SectionHeader title="Add Brand" />
-
                     <div className="px-4 w-100">
                         <Formik
                             innerRef={formikRef}
@@ -261,9 +253,6 @@ const AddBrandComponent = () => {
                                 name: '',
                                 description: '',
                                 slug: '',
-                                metaTitle: '',
-                                metaDescription: '',
-                                metaKeywords: '',
                                 logo: [], // Add logo field to handle the file
                             }}
                             validationSchema={submitForm4}
@@ -283,19 +272,6 @@ const AddBrandComponent = () => {
                                             />
                                             <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
                                         </div>
-
-                                        <div className={submitCount ? (errors.name ? 'has-error' : 'has-success') : ''}>
-                                            <label htmlFor="name">Name</label>
-                                            <Field
-                                                name="name"
-                                                type="text"
-                                                id="name"
-                                                placeholder="Enter Name"
-                                                className="form-input"
-                                            />
-                                            <ErrorMessage name="name" component="div" className="mt-1 text-danger" />
-                                        </div>
-
                                     </div>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-1">
                                         <div className={submitCount ? (errors.description ? 'has-error' : 'has-success') : ''}>
@@ -311,11 +287,9 @@ const AddBrandComponent = () => {
                                                     <div className="mt-1 text-success">Looks Good!</div>
                                                 )
                                             ) : null}
-
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
                                         {/* File upload with react-dropzone */}
                                         <div
                                             {...getRootProps()}
@@ -344,8 +318,6 @@ const AddBrandComponent = () => {
                                             )}
                                         </div>
                                     </div>
-
-
                                 </Form>
                             )}
                         </Formik>
@@ -363,7 +335,6 @@ const AddBrandComponent = () => {
                 </div>
             </div>
         </div>
-
     );
 };
 

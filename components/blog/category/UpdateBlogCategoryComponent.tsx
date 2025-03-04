@@ -10,7 +10,7 @@ import IconCircleCheck from '@/components/icon/icon-circle-check';
 import BlogCategoryService from '@/services/BlogCategoryService';
 import { useRouter } from 'next/navigation';
 
-const socket = io(`${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}`);
+const socket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`);
 
 interface BlogCategoryFormValues {
   name: string;
