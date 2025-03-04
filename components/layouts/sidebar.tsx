@@ -58,6 +58,7 @@ const menuItems: MenuItem[] = [
             { label: 'All Brands', href: '/brand/list' },
             { label: 'All Models', href: '/model/list' },
             { label: 'All Trims', href: '/trim/list' },
+            { label: 'All Years', href: '/year/list' },
         ],
     },
     {
