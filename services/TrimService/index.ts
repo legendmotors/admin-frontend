@@ -30,7 +30,7 @@ const listTrim = async (params: Record<string, any>) => {
         return response.data;
     } catch (error) {
         console.error('Error fetching trims:', error);
-        showTopCenterNotification('An error occurred while fetching trims.');
+        // showTopCenterNotification('An error occurred while fetching trims.');
         return { data: [], pagination: { totalItems: 0, totalPages: 0 } };
     }
 };

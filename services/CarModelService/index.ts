@@ -30,7 +30,7 @@ const listCarModel = async (params: Record<string, any>) => {
         return response.data;
     } catch (error) {
         console.error('Error fetching car models:', error);
-        showTopCenterNotification('An error occurred while fetching car models.');
+        // showTopCenterNotification('An error occurred while fetching car models.');
         return { data: [], pagination: { totalItems: 0, totalPages: 0 } };
     }
 };
