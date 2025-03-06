@@ -106,6 +106,7 @@ interface FormDataType {
     images?: CarImage[];
     brochureId?: string | null;
     status?: string; // if you need status
+    additionalInfo: string;
 }
 
 // Initialize socket using the correct URL from your env variable
@@ -118,6 +119,10 @@ interface UpdateCarProps {
 const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
     const dispatch: AppDispatch = useDispatch();
 
+     useEffect(() => {
+        dispatch(resetForm());
+      }, [dispatch]);
+      
     // -------------------------
     // Redux states
     // -------------------------
@@ -350,6 +355,7 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                     order: img.order,
                 })) || [],
                 brochureId: data.brochureFile?.id || null,
+                additionalInfo: data.additionalInfo || '',
             };
 
             // Preload specifications
@@ -422,16 +428,39 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
         }
     };
 
-    const validationSchema = Yup.object({
-        stockId: Yup.string(),
-        brandId: Yup.string().required('Brand is required'),
-        modelId: Yup.string().required('Model is required'),
-        trimId: Yup.string().required('Trim is required'),
-        year: Yup.string().required('Year is required'),
-        price: Yup.number().min(1000, 'Price cannot be less than 1000').required('Price is required'),
-        usdPrice: Yup.number().min(1000, 'USD price cannot be less than 1000'),
-        // Add other fields as needed
-    });
+    const validationSchema = useMemo(() => {
+        return Yup.object({
+            stockId: Yup.string().required('The Stock ID is required'),
+            brandId: Yup.string().required('The Brand is required'),
+            modelId: Yup.string().required('The Model is required'),
+            year: Yup.string().required('The Year is required'),
+            price: Yup.number()
+                .min(1000, 'Price cannot be less than 1000')
+                .required('The AED Price is required'),
+            usdPrice: Yup.number()
+                .min(1000, 'Price cannot be less than 1000')
+                .required('The USD Price is required'),
+            additionalInfo: Yup.string().required('Additional info is required'),
+            specifications: Yup.object().shape(
+                specifications.reduce((acc, spec) => {
+                    if (spec.mandatory) {
+                        acc[spec.key] = Yup.string().required(`${spec.name} is required`);
+                    }
+                    return acc;
+                }, {} as Record<string, Yup.StringSchema>)
+            ),
+            features: Yup.object().shape(
+                features.reduce((acc, feature) => {
+                    if (feature.mandatory) {
+                        acc[feature.id] = Yup.array()
+                            .of(Yup.string().required())
+                            .min(1, `${feature.name} is required`);
+                    }
+                    return acc;
+                }, {} as Record<number, Yup.ArraySchema<Yup.StringSchema>>)
+            ),
+        });
+    }, [specifications, features]);
 
     const handleNext = (values: FormDataType) => {
         dispatch(setFormData(values));
@@ -498,6 +527,7 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
             })),
             tags: rawValues.tags,
             brochureId: brochureFile?.id,
+            additionalInfo: rawValues.additionalInfo
         };
     };
 
@@ -882,6 +912,20 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                                                         <ErrorMessage name="year" component="div" className="mt-1 text-danger" />
                                                     </div>
                                                 </div>
+                                                <div >
+                                                    <label className="block font-medium mb-1">Additional Info</label>
+                                                    <Field
+                                                        type="text"
+                                                        name="additionalInfo"
+                                                        placeholder="Enter additional info"
+                                                        className="border border-gray-300 rounded px-3 py-2 w-full"
+                                                    />
+                                                    <ErrorMessage
+                                                        name="additionalInfo"
+                                                        component="div"
+                                                        className="text-red-500 text-sm mt-1"
+                                                    />
+                                                </div>
                                             </div>
 
                                             {/* PRICE */}
@@ -1121,9 +1165,9 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                                         </p>
                                         <p>
                                             <strong>Brand:</strong> {selectedBrand?.label || '-'}{' '}
-                                            <br/>
+                                            <br />
                                             <strong>Model:</strong> {selectedModel?.label || '-'}{' '}
-                                            <br/>
+                                            <br />
                                             <strong>Trim:</strong> {selectedTrim?.label || '-'}
                                         </p>
                                         <p>

@@ -909,7 +909,7 @@ const CarInventoryListing: React.FC = () => {
             {/* Top bar: total, import, search, and add new */}
             <div className="flex justify-between items-center mb-4 mt-4">
               <div className="flex flex-col md:flex-row gap-2 items-center">
-                <ImportComponent {...importComponentConfig} />
+                {/* <ImportComponent {...importComponentConfig} /> */}
                 <Link href="/inventory/add" className="btn btn-primary">
                   <IconPlus /> Add New
                 </Link>

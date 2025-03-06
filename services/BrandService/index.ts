@@ -30,7 +30,7 @@ const listBrand = async (params: Record<string, any>) => {
     } catch (error) {
         if (axios.isAxiosError(error)) {
             console.error('Error fetching brands:', error.response?.data?.message);
-            // showTopCenterNotification(error.response?.data?.message || 'An error occurred while fetching brands.');
+            showTopCenterNotification(error.response?.data?.message || 'An error occurred while fetching brands.');
         } else {
             console.error('Unexpected error:', error);
             showTopCenterNotification('An unexpected error occurred.');
