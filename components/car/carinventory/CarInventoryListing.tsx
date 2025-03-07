@@ -44,6 +44,7 @@ import SectionHeader from "@/components/utils/SectionHeader";
 import SpecificationService from "@/services/SpecificationService";
 import FeatureService from "@/services/FeatureService";
 import CarTagService from "@/services/CarTagService";
+import IconX from "@/components/icon/icon-x";
 
 /** Filter keys we want to handle (brandId, modelId, trimId, yearId). */
 const FILTER_KEYS = ["brandId", "modelId", "trimId", "yearId"] as const;
@@ -481,11 +482,32 @@ const CarInventoryListing: React.FC = () => {
     dispatch(setTagIds(actual.map((opt) => opt.value)));
   };
 
-  // 9) Search & Reset
-  const handleSearch = () => {
-    dispatch(setSearchQuery(localSearch));
+  // Search & Reset
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalSearch(value);
+    // Auto-reset the search filter when input is cleared
+    if (value.trim() === "") {
+      dispatch(setSearchQuery(""));
+      dispatch(resetCars());
+      dispatch(fetchCarList({ page: 1 }));
+    }
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearch("");
+    dispatch(setSearchQuery(""));
     dispatch(resetCars());
     dispatch(fetchCarList({ page: 1 }));
+  };
+
+  const handleSearch = () => {
+    // When there is a non-empty value, add the search filter.
+    if (localSearch.trim() !== "") {
+      dispatch(setSearchQuery(localSearch));
+      dispatch(resetCars());
+      dispatch(fetchCarList({ page: 1 }));
+    }
   };
 
   const handleResetFilters = () => {
@@ -727,8 +749,8 @@ const CarInventoryListing: React.FC = () => {
                           value={
                             filters.specFilters[spec.key.toLowerCase()]
                               ? spec.values.filter((option) =>
-                                  filters.specFilters[spec.key.toLowerCase()].includes(option.value)
-                                )
+                                filters.specFilters[spec.key.toLowerCase()].includes(option.value)
+                              )
                               : []
                           }
                           onChange={(selectedOptions: MultiValue<SelectOption>) => {
@@ -914,20 +936,26 @@ const CarInventoryListing: React.FC = () => {
                   <IconPlus /> Add New
                 </Link>
               </div>
-              <div className="flex flex-col md:flex-row gap-2 items-center">
-                <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center ">
+                <div className="relative flex items-center ">
                   <input
                     type="text"
                     value={localSearch}
-                    onChange={(e) => setLocalSearch(e.target.value)}
+                    onChange={handleSearchChange}
                     placeholder="Search by Stock ID, brand, model, or keyword..."
                     className="form-input w-[300px]"
                   />
-                  <button onClick={handleSearch} className="btn btn-success flex gap-1">
-                    <IconSearch /> Search
-                  </button>
+                  {localSearch && (
+                    <span onClick={handleClearSearch} className="absolute z-9 right-3 cursor-pointer" >
+                      <IconX className="w-4 h-4 text-black" />
+                    </span>
+                  )}
                 </div>
+                <button onClick={handleSearch} className="btn btn-success flex gap-1">
+                  <IconSearch /> Search
+                </button>
               </div>
+
             </div>
 
             <div className="text-xl font-semibold mb-4">{totalCars} Total Cars</div>
@@ -936,14 +964,20 @@ const CarInventoryListing: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {cars.map((car: Car, index: number) => {
                 const isLastCar = index === cars.length - 1;
-                const exteriorImage = car.CarImages.find((img) => img.type === "exterior")
-                  ?.FileSystem?.path;
-                const firstImage = car.CarImages[0]?.FileSystem?.path;
+                const exteriorCarImage = car.CarImages.find((img) => img.type === "exterior");
+                const exteriorImage =
+                  exteriorCarImage?.FileSystem?.thumbnailPath || exteriorCarImage?.FileSystem?.path;
+
+                const firstCarImage = car.CarImages[0];
+                const firstImage =
+                  firstCarImage?.FileSystem?.thumbnailPath || firstCarImage?.FileSystem?.path;
+
                 const imagePath = exteriorImage
                   ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${exteriorImage}`
                   : firstImage
-                  ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${firstImage}`
-                  : "/placeholder-image.jpg";
+                    ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${firstImage}`
+                    : "/assets/car-placeholder.webp";
+
 
                 const aedPriceObj = car.CarPrices.find((p) => p.currency === "AED");
                 const aedPrice = aedPriceObj ? formatCurrency(aedPriceObj.price) : "-";
@@ -985,8 +1019,9 @@ const CarInventoryListing: React.FC = () => {
                         </div>
                       )}
                       <h3 className="mt-2 font-bold text-lg">
-                        {car.Year.year} {car.Brand.name} {car.CarModel.name} {car.Trim.name}
+                        {car.Year.year} {car.Brand.name} {car.CarModel.name} {car?.Trim?.name}
                       </h3>
+                      <p className="text-gray-700 font-semibold"> {car?.additionalInfo}</p>
                       <div className="flex justify-between">
                         <div className="text-lg font-bold mt-1 text-green-600">
                           AED {aedPrice}

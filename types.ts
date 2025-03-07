@@ -135,7 +135,7 @@ export interface Car {
   brandId?: number;
   modelId?: number;
   trimId?: number;
-  
+  additionalInfo?: string;
   // Associations
   Brand: Brand;
   CarModel: CarModel;

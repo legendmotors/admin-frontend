@@ -119,10 +119,10 @@ interface UpdateCarProps {
 const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
     const dispatch: AppDispatch = useDispatch();
 
-     useEffect(() => {
+    useEffect(() => {
         dispatch(resetForm());
-      }, [dispatch]);
-      
+    }, [dispatch]);
+
     // -------------------------
     // Redux states
     // -------------------------
@@ -797,15 +797,13 @@ const UpdateCarComponent: React.FC<UpdateCarProps> = ({ carId }) => {
                                                                         <input
                                                                             type="checkbox"
                                                                             className="form-checkbox"
-                                                                            checked={field.value.includes(tag.id)}
+                                                                            checked={field.value?.includes(tag.id) || false}
                                                                             onChange={() => {
-                                                                                if (field.value.includes(tag.id)) {
-                                                                                    const newValue = field.value.filter(
-                                                                                        (tId: number) => tId !== tag.id
-                                                                                    );
+                                                                                if (field.value?.includes(tag.id)) {
+                                                                                    const newValue = field.value.filter((tId: number) => tId !== tag.id);
                                                                                     form.setFieldValue('tags', newValue);
                                                                                 } else {
-                                                                                    form.setFieldValue('tags', [...field.value, tag.id]);
+                                                                                    form.setFieldValue('tags', [...(field.value || []), tag.id]);
                                                                                 }
                                                                             }}
                                                                         />

@@ -740,15 +740,13 @@ const AddCarComponent: React.FC = () => {
                                     <input
                                       type="checkbox"
                                       className="form-checkbox"
-                                      checked={field.value.includes(tag.id)}
+                                      checked={field.value?.includes(tag.id) || false}
                                       onChange={() => {
-                                        if (field.value.includes(tag.id)) {
-                                          const newValue = field.value.filter(
-                                            (tId: number) => tId !== tag.id
-                                          );
+                                        if (field.value?.includes(tag.id)) {
+                                          const newValue = field.value.filter((tId: number) => tId !== tag.id);
                                           form.setFieldValue('tags', newValue);
                                         } else {
-                                          form.setFieldValue('tags', [...field.value, tag.id]);
+                                          form.setFieldValue('tags', [...(field.value || []), tag.id]);
                                         }
                                       }}
                                     />
@@ -1050,7 +1048,7 @@ const AddCarComponent: React.FC = () => {
                                   />
                                   <label
                                     htmlFor={`feature-${feature.id}-value-${value.id}`}
-                                    className="ml-2"
+                                    className="ml-2 mb-0"
                                   >
                                     {value.name}
                                   </label>
