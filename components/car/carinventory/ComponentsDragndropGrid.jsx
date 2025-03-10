@@ -75,7 +75,11 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
     }
 
     for (const file of filesToProcess) {
-      const fileId = `${section}-${Date.now()}-${file.name}`;
+      // Generate a unique filename by adding a timestamp or random string
+      const timestamp = Date.now();
+      const uniqueFileName = `${timestamp}-${file.name}`;
+
+      const fileId = `${section}-${uniqueFileName}`;
       const placeholderImage = {
         id: fileId,
         fileId: null,
@@ -94,7 +98,7 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
       }));
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file, uniqueFileName); // Append file with new name
 
       try {
         for (let progress = 0; progress <= 100; progress += 10) {
@@ -120,10 +124,10 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
             [section]: prevState[section].map((img) =>
               img.id === fileId
                 ? {
-                    ...img,
-                    fileId: data.id,
-                    thumbnailPath: data.thumbnailPath || data.path,
-                  }
+                  ...img,
+                  fileId: data.id,
+                  thumbnailPath: data.thumbnailPath || data.path,
+                }
                 : img
             ),
           }));
@@ -144,6 +148,7 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
       }
     }
   };
+
 
   // Open the media modal.
   const openModal = (section) => {
