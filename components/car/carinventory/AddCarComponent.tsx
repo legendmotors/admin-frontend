@@ -1090,6 +1090,10 @@ const AddCarComponent: React.FC = () => {
                   <ComponentsDragndropGrid
                     onImagesUpdate={handleImagesUpdate}
                     initialImages={images}
+                    selectedYear={selectedYear}
+                    selectedBrand={selectedBrand}
+                    selectedModel={selectedModel}
+                    selectedTrim={selectedTrim}
                   />
                   <BrochureUpload
                     onFileUpload={(file) => dispatch(setBrochure(file))}

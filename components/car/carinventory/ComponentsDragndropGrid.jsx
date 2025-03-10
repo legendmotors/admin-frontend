@@ -4,7 +4,10 @@ import { ReactSortable } from "react-sortablejs";
 import ConfirmationModal from "@/components/modal/MediaModal"; // Import your modal component
 import Swal from "sweetalert2";
 
-const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
+const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages, selectedYear,
+  selectedBrand,
+  selectedModel,
+  selectedTrim }) => {
   const [imageSections, setImageSections] = useState({
     interior: [],
     exterior: [],
@@ -75,9 +78,21 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
     }
 
     for (const file of filesToProcess) {
-      // Generate a unique filename by adding a timestamp or random string
       const timestamp = Date.now();
-      const uniqueFileName = `${timestamp}-${file.name}`;
+      const randomId = Math.floor(Math.random() * 1000000); // Generate a random ID
+
+      // Extract filename and extension
+      const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const fileExtension = file.name.split('.').pop(); // Get file extension
+
+      // Ensure these values are available
+      const year = selectedYear?.label || "UnknownYear";
+      const brand = selectedBrand?.label?.replace(/\s+/g, '') || "UnknownBrand";
+      const model = selectedModel?.label?.replace(/\s+/g, '') || "UnknownModel";
+      const trim = selectedTrim?.label?.replace(/\s+/g, '') || "UnknownTrim";
+
+      // ✅ Generate a unique filename with all required details
+      const uniqueFileName = `${year}-${brand}-${model}-${trim}-${fileNameWithoutExt}-${randomId}.${fileExtension}`;
 
       const fileId = `${section}-${uniqueFileName}`;
       const placeholderImage = {
@@ -98,7 +113,7 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
       }));
 
       const formData = new FormData();
-      formData.append("file", file, uniqueFileName); // Append file with new name
+      formData.append("file", file, uniqueFileName); // ✅ Append file with new name
 
       try {
         for (let progress = 0; progress <= 100; progress += 10) {
@@ -148,6 +163,8 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages }) => {
       }
     }
   };
+
+
 
 
   // Open the media modal.
