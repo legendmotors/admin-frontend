@@ -78,9 +78,6 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages, selectedYear,
     }
 
     for (const file of filesToProcess) {
-      const timestamp = Date.now();
-      const randomId = Math.floor(Math.random() * 1000000); // Generate a random ID
-
       // Extract filename and extension
       const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
       const fileExtension = file.name.split('.').pop(); // Get file extension
@@ -92,7 +89,7 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages, selectedYear,
       const trim = selectedTrim?.label?.replace(/\s+/g, '') || "UnknownTrim";
 
       // ✅ Generate a unique filename with all required details
-      const uniqueFileName = `${year}-${brand}-${model}-${trim}-${fileNameWithoutExt}-${randomId}.${fileExtension}`;
+      const uniqueFileName = `${year}-${brand}-${model}-${trim}-${fileNameWithoutExt}.${fileExtension}`;
 
       const fileId = `${section}-${uniqueFileName}`;
       const placeholderImage = {

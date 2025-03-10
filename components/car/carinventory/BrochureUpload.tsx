@@ -30,23 +30,15 @@ const BrochureUpload: React.FC<BrochureUploadProps> = ({ onFileUpload, initialFi
         if (acceptedFiles.length === 0) return;
 
         const file = acceptedFiles[0];
-        const fileExtension = file.name.split('.').pop(); // Extract file extension
-        const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-        const randomId = Math.floor(Math.random() * 1000000); // Generate a random number
-
-        // ✅ Generate a unique filename with the original filename + random number
-        const uniqueFileName = `${fileNameWithoutExt}-${randomId}.${fileExtension}`;
-
-        const fileId = `brochure-${uniqueFileName}`;
+        const fileId = `brochure-${Date.now()}-${file.name}`;
 
         // Set placeholder while uploading
-        setBrochure({ id: fileId, fileId: "", name: uniqueFileName, path: "" });
-
+        setBrochure({ id: fileId, fileId: "", name: file.name, path: "" });
         // Initialize progress
         setUploadProgress(0);
 
         const formData = new FormData();
-        formData.append("file", file, uniqueFileName); // ✅ Append file with new name
+        formData.append("file", file);
 
         try {
             // Simulate progress
@@ -66,7 +58,7 @@ const BrochureUpload: React.FC<BrochureUploadProps> = ({ onFileUpload, initialFi
                 const uploadedFile: UploadedFile = {
                     id: fileId,
                     fileId: data.id,
-                    name: uniqueFileName, // ✅ Store the new filename with random number
+                    name: file.name,
                     path: data.path || "",
                 };
                 setBrochure(uploadedFile);
@@ -79,7 +71,6 @@ const BrochureUpload: React.FC<BrochureUploadProps> = ({ onFileUpload, initialFi
             console.error("Upload failed:", error);
         }
     };
-
 
     const removeFile = () => {
         setBrochure(null);
