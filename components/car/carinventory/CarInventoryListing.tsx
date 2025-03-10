@@ -964,20 +964,26 @@ const CarInventoryListing: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {cars.map((car: Car, index: number) => {
                 const isLastCar = index === cars.length - 1;
-                const exteriorCarImage = car.CarImages.find((img) => img.type === "exterior");
+
+                // Sort exterior images by order and select the first one
+                const exteriorCarImage = car.CarImages
+                  .filter((img) => img.type === "exterior")
+                  .sort((a, b) => a.order - b.order)[0]; // Get the lowest order exterior image
+
                 const exteriorImage =
                   exteriorCarImage?.FileSystem?.thumbnailPath || exteriorCarImage?.FileSystem?.path;
 
+                // Fallback to first available image if no exterior image exists
                 const firstCarImage = car.CarImages[0];
                 const firstImage =
                   firstCarImage?.FileSystem?.thumbnailPath || firstCarImage?.FileSystem?.path;
 
+                // Determine the image path
                 const imagePath = exteriorImage
                   ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${exteriorImage}`
                   : firstImage
                     ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${firstImage}`
                     : "/assets/car-placeholder.webp";
-
 
                 const aedPriceObj = car.CarPrices.find((p) => p.currency === "AED");
                 const aedPrice = aedPriceObj ? formatCurrency(aedPriceObj.price) : "-";
@@ -1056,6 +1062,7 @@ const CarInventoryListing: React.FC = () => {
                   </div>
                 );
               })}
+
               {isLoading &&
                 Array.from({ length: 4 }).map((_, idx) => (
                   <Skeleton key={idx} height={210} width="100%" />
