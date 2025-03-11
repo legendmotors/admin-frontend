@@ -18,6 +18,31 @@ import { useState, useEffect } from "react";
 import IconSearch from "../icon/icon-search";
 import IconX from "../icon/icon-x";
 
+/**
+ * Returns an array of page numbers (and "..." as needed) to display in the pagination.
+ */
+function getPageNumbers(currentPage, totalPages) {
+  const maxPagesToShow = 5;
+
+  // If totalPages is small, just show them all.
+  if (totalPages <= maxPagesToShow) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  // If we're near the beginning, show first few pages.
+  if (currentPage <= 3) {
+    return [1, 2, 3, "...", totalPages];
+  }
+
+  // If we're near the end, show last few pages.
+  if (currentPage >= totalPages - 2) {
+    return [1, "...", totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  // Otherwise, show the current page in the middle.
+  return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+}
+
 const FileManager = ({
   onSearch,
   searchQuery,
@@ -28,18 +53,18 @@ const FileManager = ({
   fileUploadConfig,
   isLoading,
   onCreateFolder,
-  onFileUploading = () => { },
-  onFileUploaded = () => { },
+  onFileUploading = () => {},
+  onFileUploaded = () => {},
   onCut,
   onCopy,
   onPaste,
   onRename,
   onDownload,
   onDelete = () => null,
-  onLayoutChange = () => { },
+  onLayoutChange = () => {},
   onRefresh,
-  onFileOpen = () => { },
-  onError = () => { },
+  onFileOpen = () => {},
+  onError = () => {},
   layout = "grid",
   enableFilePreview = true,
   maxFileSize,
@@ -72,13 +97,13 @@ const FileManager = ({
   const triggerAction = useTriggerAction();
   const { containerRef, colSizes, isDragging, handleMouseMove, handleMouseUp, handleMouseDown } =
     useColumnResize(20, 80);
+
   const customStyles = {
     "--file-manager-font-family": fontFamily,
     "--file-manager-primary-color": primaryColor,
     height,
     width,
   };
-
 
   if (!Array.isArray(files)) {
     console.error("FileManager received invalid `files` data:", files);
@@ -114,10 +139,9 @@ const FileManager = ({
                     />
                   </div>
 
-
                   <div className="folders-preview" style={{ width: colSizes.col2 + "%" }}>
                     <div className="mb-5 flex gap-4 w-full mt-3 px-4">
-                      <div className="flex  w-full">
+                      <div className="flex w-full">
                         <div className="flex items-center justify-center border border-white-light bg-[#eee] px-3 font-semibold ltr:rounded-l-md ltr:border-r-0 rtl:rounded-r-md rtl:border-l-0 dark:border-[#17263c] dark:bg-[#1b2e4b]">
                           <IconSearch className="text-white-dark" />
                         </div>
@@ -164,7 +188,6 @@ const FileManager = ({
                       totalPages={totalPages}
                     />
                   </div>
-
                 </section>
 
                 <Actions
@@ -180,46 +203,63 @@ const FileManager = ({
                   triggerAction={triggerAction}
                 />
               </LayoutProvider>
-
             </ClipBoardProvider>
           </SelectionProvider>
         </FileNavigationProvider>
       </FilesProvider>
+
+      {/* Pagination */}
       <div className="mb-5 mt-5">
         <div className="flex w-full flex-col justify-center">
           <ul className="m-auto inline-flex items-center space-x-1 rtl:space-x-reverse">
+            {/* Prev button */}
             <li>
               <button
                 type="button"
                 className="flex justify-center rounded bg-white-light px-3.5 py-2 font-semibold text-dark transition hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
-                disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
               >
                 Prev
               </button>
             </li>
-            {/* Display pages dynamically */}
-            {[...Array(totalPages)].map((_, index) => {
-              const pageNumber = index + 1;
+
+            {/* Page numbers with ellipses */}
+            {getPageNumbers(currentPage, totalPages).map((page, idx) => {
+              if (page === "...") {
+                return (
+                  <li key={`ellipsis-${idx}`}>
+                    <span className="flex justify-center rounded px-3.5 py-2 font-semibold text-dark dark:text-white-light">
+                      ...
+                    </span>
+                  </li>
+                );
+              }
+
               return (
-                <li key={pageNumber}>
+                <li key={page}>
                   <button
                     type="button"
-                    className={`flex justify-center rounded px-3.5 py-2 font-semibold text-dark transition ${pageNumber === currentPage
-                      ? "bg-primary text-white dark:bg-primary dark:text-white-light"
-                      : "bg-white-light hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
-                      }`}
-                    onClick={() => onPageChange(pageNumber)}
+                    className={`flex justify-center rounded px-3.5 py-2 font-semibold text-dark transition ${
+                      page === currentPage
+                        ? "bg-primary text-white dark:bg-primary dark:text-white-light"
+                        : "bg-white-light hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
+                    }`}
+                    onClick={() => onPageChange(page)}
                   >
-                    {pageNumber}
+                    {page}
                   </button>
                 </li>
               );
             })}
+
+            {/* Next button */}
             <li>
               <button
                 type="button"
                 className="flex justify-center rounded bg-white-light px-3.5 py-2 font-semibold text-dark transition hover:bg-primary hover:text-white dark:bg-[#191e3a] dark:text-white-light dark:hover:bg-primary"
-                disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
               >
                 Next
               </button>
@@ -261,6 +301,11 @@ FileManager.propTypes = {
   onRefresh: PropTypes.func,
   onFileOpen: PropTypes.func,
   onError: PropTypes.func,
+  onSearch: PropTypes.func,
+  searchQuery: PropTypes.string,
+  onPageChange: PropTypes.func,
+  currentPage: PropTypes.number,
+  totalPages: PropTypes.number,
   layout: PropTypes.oneOf(["grid", "list"]),
   maxFileSize: PropTypes.number,
   enableFilePreview: PropTypes.bool,

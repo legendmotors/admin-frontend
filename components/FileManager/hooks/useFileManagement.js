@@ -18,7 +18,7 @@ export const useFileManagement = () => {
   const getFiles = async (page = 1, search = "") => {
     setIsLoading(true);
     try {
-      const response = await getAllFilesAPI(search, page, 10);
+      const response = await getAllFilesAPI(search, page, 24);
       if (response.success) {
         setFiles(response.data);
         setTotalPages(response.pagination.totalPages);
