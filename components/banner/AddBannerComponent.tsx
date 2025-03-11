@@ -36,11 +36,11 @@ const AddBannerComponent: React.FC = () => {
   useEffect(() => {
     if (selectedFiles.length > 0) {
       const selectedFile = selectedFiles[0];
-      const preview = selectedFile.thumbnailPath || selectedFile.path;
+      const preview = selectedFile?.thumbnailPath || selectedFile?.path;
       setMediaPreview(preview);
       // Update Formik field if form is mounted
       if (formikRef.current) {
-        formikRef.current.setFieldValue('media', selectedFile.id);
+        formikRef.current.setFieldValue('media', selectedFile?.id);
       }
     }
   }, [selectedFiles]);
