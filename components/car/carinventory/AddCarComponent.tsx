@@ -588,24 +588,44 @@ const AddCarComponent: React.FC = () => {
       return <p>No images uploaded.</p>;
     }
 
+    const categorizedImages = {
+      Exterior: images.filter((img) => img.type?.toLowerCase().includes('exterior')),
+      Interior: images.filter((img) => img.type?.toLowerCase().includes('interior')),
+      Highlight: images.filter((img) => img.type?.toLowerCase().includes('highlight')),
+      Others: images.filter(
+        (img) =>
+          !img.type?.toLowerCase().includes('exterior') &&
+          !img.type?.toLowerCase().includes('interior') &&
+          !img.type?.toLowerCase().includes('highlight')
+      ),
+    };
+
     return (
-      <div className="flex flex-wrap gap-4 mt-2">
-        {images.map((img, index) => (
-          <div
-            key={index}
-            className="w-24 h-24 bg-gray-100 rounded overflow-hidden cursor-pointer"
-            onClick={() => handleThumbnailClick(index)}
-          >
-            <img
-              src={`${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}/${img.thumbnailPath}`}
-              alt={`Car Image ${index + 1}`}
-              className="w-full h-full object-cover"
-            />
+      <div className="flex flex-col gap-4 mt-2">
+        {Object.entries(categorizedImages).map(([category, imgs]) => (
+          <div key={category} className="mt-4">
+            {imgs.length > 0 && <h3 className="text-lg font-bold">{category} Images</h3>}
+            <div className="flex flex-wrap gap-4">
+              {imgs.map((img, index) => (
+                <div
+                  key={index}
+                  className="w-24 h-24 bg-gray-100 rounded overflow-hidden cursor-pointer"
+                  onClick={() => handleThumbnailClick(index)}
+                >
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}/${img.thumbnailPath}`}
+                    alt={`${category} Image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
     );
   };
+
 
   const renderBrochurePreview = (): JSX.Element => {
     if (!brochureFile) {
@@ -1174,7 +1194,6 @@ const AddCarComponent: React.FC = () => {
 
                     <h3 className="text-xl font-bold mt-4 mb-2">Assets</h3>
                     <div>
-                      <strong>Images:</strong>
                       {renderImagesPreview()}
                     </div>
                     <div className="mt-4">

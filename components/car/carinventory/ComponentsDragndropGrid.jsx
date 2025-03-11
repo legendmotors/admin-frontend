@@ -9,8 +9,8 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages, selectedYear,
   selectedModel,
   selectedTrim }) => {
   const [imageSections, setImageSections] = useState({
-    interior: [],
     exterior: [],
+    interior: [],
     highlight: [],
   });
   const [uploadProgress, setUploadProgress] = useState({});
@@ -308,13 +308,15 @@ const ComponentsDragndropGrid = ({ onImagesUpdate, initialImages, selectedYear,
       />
 
       <div>
-        <h3 className="text-md font-medium mb-2">Interior Images</h3>
-        {renderDropzone("interior")}
-      </div>
-      <div>
         <h3 className="text-md font-medium mb-2">Exterior Images</h3>
         {renderDropzone("exterior")}
       </div>
+
+      <div>
+        <h3 className="text-md font-medium mb-2">Interior Images</h3>
+        {renderDropzone("interior")}
+      </div>
+
       <div>
         <h3 className="text-md font-medium mb-2">Highlight Images</h3>
         {renderDropzone("highlight")}
