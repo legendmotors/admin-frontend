@@ -61,7 +61,7 @@ const FileManagerWrapper = () => {
           onFileOpen={handleFileOpen}
           layout="grid"
           enableFilePreview
-          maxFileSize={10485760}
+          maxFileSize={20971520}
           filePreviewPath={`${process.env.NEXT_PUBLIC_FILE_PREVIEW_URL}`}
           acceptedFileTypes=".txt, .png, .jpg, .jpeg, .pdf, .doc, .docx, .exe"
           height="100%"
