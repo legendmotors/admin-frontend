@@ -26,7 +26,7 @@ const UploadItem = ({
   const xhrRef = useRef();
   const { onError } = useFiles();
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // ✅ 2MB limit
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // ✅ 2MB limit
 
   const handleUploadError = (xhr) => {
     setUploadProgress(0);
@@ -38,7 +38,7 @@ const UploadItem = ({
     let errorMessage = "Upload failed.";
 
     if (xhr.status === 413 || xhr.response.includes("File too large")) {
-      errorMessage = "File size exceeds the 2MB limit!";
+      errorMessage = "File size exceeds the 20MB limit!";
     }
 
     const error = {

@@ -46,7 +46,7 @@ const AddSpecificationValueComponent: React.FC = () => {
                     title: 'Specification Value Created Successfully!',
                     text: 'The specification value has been added successfully.',
                 }).then(() => {
-                    window.location.href = '/specification-value/list';
+                    window.location.href = '/specification/list-value';
                 });
 
                 socket.off('progress', progressHandler);
@@ -141,7 +141,7 @@ const AddSpecificationValueComponent: React.FC = () => {
                     title: 'Specification Value Created Successfully!',
                     text: 'The specification value has been added successfully.',
                 }).then(() => {
-                    window.location.href = '/specification-value/list';
+                    window.location.href = '/specification/list-value';
                 });
             } else {
                 Swal.fire({
