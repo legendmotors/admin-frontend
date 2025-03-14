@@ -153,7 +153,7 @@ const getDeleteUserList = async (id: string) => {
 // 🔹 Authenticate User (Set Cookies)
 const authenticate = (user: { token: string }, next: () => void) => {
     if (typeof window !== 'undefined') {
-        setCookie('token', user.token, 30); // Save the token as a cookie
+        setCookie('token', user.token, 10080); // 7 days expiry
 
         // Decode the token to extract details
         const decoded: any = jwtDecode(user.token); // Decoding the token
@@ -212,11 +212,38 @@ const logout = (next: () => void) => {
 
 // 🔹 Check if User is Authenticated
 const isAuthenticate = (): string | false => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined') return false;
+
+    const token = getCookie('token');
+
+    if (!token) {
+        clearAuthCookies();
         return false;
     }
-    const token = getCookie('token');
-    return token ? JSON.stringify(token) : false;
+
+    try {
+        const decoded: any = jwtDecode(token);
+        const currentTime = Date.now() / 1000;
+
+        if (decoded.exp < currentTime) {
+            clearAuthCookies();
+            return false;
+        }
+
+        return token;
+    } catch (err) {
+        clearAuthCookies();
+        return false;
+    }
+};
+
+const clearAuthCookies = () => {
+    eraseCookie('token');
+    eraseCookie('roleId');
+    eraseCookie('rolePermissions');
+    eraseCookie('permissions');
+    eraseCookie('userId');
+    eraseCookie('XSRF-token');
 };
 
 export default {
